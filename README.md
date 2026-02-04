@@ -33,10 +33,9 @@ Before you begin, ensure you have the following installed:
 
 - **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
 - **npm** (comes with Node.js) or **yarn**
-- **Expo CLI** - Install globally with `npm install -g expo-cli`
 - **Git** - [Download](https://git-scm.com/)
 - **iOS Simulator** (Mac only) or **Android Studio** (for emulator)
-- **Expo Go app** (for physical device testing)
+- **Expo Go app** (for physical device testing) - [Download](https://expo.dev/client)
 
 ### Required Accounts
 - **Supabase Account** - [Sign up](https://supabase.com/)
@@ -199,7 +198,6 @@ ai-photo/
 
 **Backend:**
 - `npm start` - Start Express server
-- `npm test` - Run tests (when available)
 
 ## Troubleshooting
 
