@@ -2,7 +2,10 @@ import { supabase } from '../supabase/supabaseClient.js'
 
 export const getDescription = async (req, res) => {
     try {
-        const { data, error } = await supabase.from('photos').select('*');
+        const { data, error } = await supabase
+            .from('photos')
+            .select('*');
+            
         if (error) throw error;
         console.log(data);
         res.json(data);
