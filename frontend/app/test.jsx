@@ -11,6 +11,22 @@ export default function test() {
   const [searchQuery, setSearchQuery] = useState('');
 
   async function getPhotos() {
+  if (permissionResponse?.status !== 'granted') {
+    await requestPermission();
+  }
+
+  const { assets } = await MediaLibrary.getAssetsAsync({
+    first: 100, // limit to 100 photos
+    mediaType: 'photo',
+    sortBy: 'creationTime'
+  });
+
+  setPhotos(assets);
+}
+
+  //all photos from the gallery
+/*
+  async function getPhotos() {
     if (permissionResponse?.status !== 'granted') {
       await requestPermission();
     }
@@ -34,6 +50,7 @@ export default function test() {
 
     setPhotos(allAssets);
   }
+  */
 
   useEffect(() => {
     getPhotos();
