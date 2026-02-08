@@ -6,26 +6,38 @@ import { Image } from 'expo-image';
 const numColumns = 4;
 
 export default function test() {
-  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions();
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({mediaTypes: 'photo'});
   const [photos, setPhotos] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-
 
   async function getPhotos() {
     if (permissionResponse?.status !== 'granted') {
       await requestPermission();
     }
-    
-    const { assets }  = await MediaLibrary.getAssetsAsync({
-      first: 100,
-      mediaType: 'photo',
-      sortBy: 'creationTime'
-    });
- 
-    setPhotos(assets);
+
+    let allAssets = [];
+    let hasNextPage = true;
+    let endCursor = undefined;
+
+    while (hasNextPage) {
+      const { assets, endCursor: newEndCursor, hasNextPage: more } = await MediaLibrary.getAssetsAsync({
+        first: 1000,
+        after: endCursor,
+        mediaType: 'photo',
+        sortBy: 'creationTime'
+      });
+
+      allAssets = [...allAssets, ...assets];
+      hasNextPage = more;
+      endCursor = newEndCursor;
+    }
+
+    setPhotos(allAssets);
   }
 
-  getPhotos();
+  useEffect(() => {
+    getPhotos();
+  }, []);
 
   return(
     <View className="flex-1 bg-gray-800">
@@ -55,5 +67,4 @@ export default function test() {
       />
     </View>
   );
-
 }
