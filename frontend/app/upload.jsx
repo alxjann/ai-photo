@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Image, Alert, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TouchableOpacity, TextInput, Image, Alert,
+  ActivityIndicator, Keyboard, TouchableWithoutFeedback,
+  ScrollView, KeyboardAvoidingView, Platform,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from '../config/api';
 
@@ -77,8 +81,13 @@ export default function Upload() {
   };
 
   return (
-    <View className="flex-1 bg-gray-900 p-4">
-      <Text className="text-white text-2xl font-bold mb-6 mt-10">Upload Photo</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1"
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView className="flex-1 bg-gray-900 p-4">
+          <Text className="text-white text-2xl font-bold mb-6 mt-10">Upload Photo</Text>
 
       {/* Image Preview */}
       {selectedImage ? (
@@ -148,6 +157,8 @@ export default function Upload() {
           <Text className="text-white text-center text-lg font-bold">Upload</Text>
         )}
       </TouchableOpacity>
-    </View>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
