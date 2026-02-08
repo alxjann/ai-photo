@@ -4,14 +4,12 @@ import { supabase } from '../config/supabase.js';
 
 const router = express.Router();
 
-// Configure multer for memory storage
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-// Upload image endpoint
 router.post('/', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -22,7 +20,6 @@ router.post('/', upload.single('image'), async (req, res) => {
     const file = req.file;
     const fileName = `${Date.now()}_${file.originalname}`;
 
-    // upload to supabase
     const { data: storageData, error: storageError } = await supabase.storage
       .from('photos')
       .upload(fileName, file.buffer, {
@@ -35,12 +32,10 @@ router.post('/', upload.single('image'), async (req, res) => {
       return res.status(500).json({ error: 'Failed to upload image' });
     }
 
-    // get public u rl
     const { data: { publicUrl } } = supabase.storage
       .from('photos')
       .getPublicUrl(fileName);
 
-    // save metadata to database
     const { data: dbData, error: dbError } = await supabase
       .from('images')
       .insert([
