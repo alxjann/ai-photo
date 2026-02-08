@@ -2,6 +2,7 @@
   "expo": {
     "name": "ai-photo",
     "slug": "ai-photo",
+    "scheme": "aiphoto",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +21,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ],
+      "package": "com.rarufuralph.aiphoto"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -35,6 +45,12 @@
           "savePhotosPermission": "Allow ai-photo to save photos."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "eb096296-4046-4071-8aaf-06214e8ea581"
+      }
+    }
   }
 }
