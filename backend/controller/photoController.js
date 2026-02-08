@@ -5,7 +5,7 @@ export const getDescription = async (req, res) => {
         const { data, error } = await supabase
             .from('photos')
             .select('*');
-            
+
         if (error) throw error;
         console.log(data);
         res.json(data);

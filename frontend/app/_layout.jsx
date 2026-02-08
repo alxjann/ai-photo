@@ -39,13 +39,6 @@ export default function RootLayout() {
           ),
         }} 
       />
-      <Tabs.Screen 
-        name="albums" 
-        options={{ 
-          title: 'Albums',
-          tabBarLabel: 'Albums',
-        }} 
-      />
     </Tabs>
   );
 }
