@@ -13,9 +13,8 @@ app.use(cors());
 app.use(express.json());
 
 // routes
-app.use('/api/upload', uploadRoutes);
+app.use('/api', uploadRoutes);
 
-// heakth check
 app.get('/', (req, res) => {
   res.json({ message: 'AI Photo Gallery API is running!' });
 });
