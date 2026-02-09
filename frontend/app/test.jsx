@@ -24,34 +24,6 @@ export default function test() {
   setPhotos(assets);
 }
 
-  //all photos from the gallery
-/*
-  async function getPhotos() {
-    if (permissionResponse?.status !== 'granted') {
-      await requestPermission();
-    }
-
-    let allAssets = [];
-    let hasNextPage = true;
-    let endCursor = undefined;
-
-    while (hasNextPage) {
-      const { assets, endCursor: newEndCursor, hasNextPage: more } = await MediaLibrary.getAssetsAsync({
-        first: 1000,
-        after: endCursor,
-        mediaType: 'photo',
-        sortBy: 'creationTime'
-      });
-
-      allAssets = [...allAssets, ...assets];
-      hasNextPage = more;
-      endCursor = newEndCursor;
-    }
-
-    setPhotos(allAssets);
-  }
-  */
-
   useEffect(() => {
     getPhotos();
   }, []);

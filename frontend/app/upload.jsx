@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, TextInput, Image, Alert, ActivityIndicato
 import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from '../config/api';
 
+
+const BACKEND_URL = API_URL;
 export default function Upload() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [descriptiveTag, setDescriptiveTag] = useState('');
