@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import uploadRoutes from './routes/upload.js';
+import upload from './routes/upload.js';
+import embed from './routes/embed.js';
 
 dotenv.config();
 
@@ -13,7 +14,8 @@ app.use(cors());
 app.use(express.json());
 
 // routes
-app.use('/api', uploadRoutes);
+app.use('/api', upload);
+app.use('/api', embed)
 
 app.get('/', (req, res) => {
   res.json({ message: 'AI Photo Gallery API is running!' });
