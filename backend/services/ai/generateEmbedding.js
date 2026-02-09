@@ -3,7 +3,7 @@ import { aiClient } from "../../config/ai.config.js";
 
 const embeddingModel = "openai/text-embedding-3-large";
 
-export async function generateEmbedding(text) {
+export const generateEmbedding = async(text) => {
     const response = await aiClient.path("/embeddings").post({
         body: {
             input: [text],

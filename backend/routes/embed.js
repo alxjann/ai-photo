@@ -1,9 +1,9 @@
 import express from 'express';
-import { generateEmbedding } from '../services/generateEmbedding.js';
+import { generateEmbeddingController } from '../controller/embeddingController.js';
 
 const router = express.Router();
 
 
-router.post('/embed', generateEmbedding);
+router.post('/embed', generateEmbeddingController);
 
 export default router;
