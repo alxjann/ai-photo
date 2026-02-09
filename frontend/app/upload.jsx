@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, TextInput, Image, Alert, ActivityIndicato
 import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from '../config/api';
 
-const BACKEND_URL = API_URL; // need to change to backedn url to this device's ip (example: http://x.x.x.x:3000)
 export default function Upload() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [descriptiveTag, setDescriptiveTag] = useState('');
