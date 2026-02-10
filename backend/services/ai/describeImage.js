@@ -1,5 +1,5 @@
 import { isUnexpected } from "@azure-rest/ai-inference";
-import { aiClient } from "../config/ai.config.js";
+import { aiClient } from "../../config/ai.config.js";
 
 const gptModel = "openai/gpt-4.1-mini";
 
