@@ -1,7 +1,7 @@
 import { isUnexpected } from "@azure-rest/ai-inference";
 import { aiClient } from "../../config/ai.config.js";
 
-const embeddingModel = "openai/text-embedding-3-large";
+const embeddingModel = "openai/text-embedding-3-small";
 
 export const generateEmbedding = async(text) => {
     const response = await aiClient.path("/embeddings").post({
