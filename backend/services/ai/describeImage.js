@@ -5,7 +5,7 @@ const gptModel = "openai/gpt-4.1-mini";
 
 const IMAGE_PROMPT = `You are an image understanding assistant.
 
-Analyze the image and produce TWO separate descriptions.
+Analyze the image and produce TWO separate descriptions (2 sentences for each description).
 
 RULES:
 - Do NOT repeat information across descriptions.
@@ -19,7 +19,7 @@ FORMAT:
 [LITERAL]
 <text>
 
-[AFFECTIVE]
+[DESCRIPTIVE]
 <text>
 `;
 

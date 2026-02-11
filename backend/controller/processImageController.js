@@ -5,11 +5,11 @@ export const processImageController = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({ error: 'No image file provided' });
         }
-        const { description, vectorEmbedding } = await processImage(req.file.buffer);
+
+        await processImage(req.file.buffer);
 
         res.status(200).json({
-            message: 'Image processed successfully',
-            data: { description, vectorEmbedding },
+            message: 'Image processed successfully'
         });
     } catch (error) {
         console.error('Process image error:', error);
