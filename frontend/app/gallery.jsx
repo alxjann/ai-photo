@@ -15,7 +15,7 @@ import {
 import { API_URL } from '../config/api';
 
 const { width } = Dimensions.get('window');
-const numColumns = 3; // 3x3 grid
+const numColumns = 3; // but we can change later if we want
 const imageSize = width / numColumns;
 
 export default function GalleryScreen() {
@@ -41,16 +41,16 @@ export default function GalleryScreen() {
       });
 
       const data = await response.json();
-      console.log(`✅ Loaded ${data.results?.length || 0} photos`);
+      console.log(`Loaded ${data.results?.length || 0} photos`);
       
       if (response.ok) {
         setPhotos(data.results || []);
       } else {
-        console.error('❌ Error:', data.error);
+        console.error('error:', data.error);
         throw new Error(data.error || 'Failed to load photos');
       }
     } catch (error) {
-      console.error('❌ Load error:', error.message);
+      console.error('error:', error.message);
       Alert.alert('Error', `Failed to load photos: ${error.message}`);
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export default function GalleryScreen() {
 
     setSearching(true);
     try {
-      console.log('🔍 Searching for:', searchQuery);
+      console.log('searching for:', searchQuery);
       
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
@@ -81,7 +81,7 @@ export default function GalleryScreen() {
       });
 
       const data = await response.json();
-      console.log(`✅ Search complete: ${data.count || 0} results`);
+      console.log(`search complete: ${data.count || 0} results`);
       
       if (response.ok) {
         setPhotos(data.results || []);
@@ -92,7 +92,7 @@ export default function GalleryScreen() {
         throw new Error(data.error || 'Search failed');
       }
     } catch (error) {
-      console.error('❌ Search error:', error.message);
+      console.error('search error:', error.message);
       Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
       setSearching(false);
@@ -235,7 +235,7 @@ export default function GalleryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1f2937', // Dark background like test.jsx
+    backgroundColor: '#1f2937',
   },
   header: {
     padding: 16,

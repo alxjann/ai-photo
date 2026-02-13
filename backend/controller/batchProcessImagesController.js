@@ -7,7 +7,7 @@ export const batchProcessImagesController = async (req, res) => {
         }
 
         const totalFiles = req.files.length;
-        console.log(`📦 Starting batch processing of ${totalFiles} images...`);
+        console.log(`starting batch processing of ${totalFiles} images...`);
 
         const results = [];
         const errors = [];
@@ -16,7 +16,7 @@ export const batchProcessImagesController = async (req, res) => {
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
             try {
-                console.log(`\n🔄 Processing image ${i + 1}/${totalFiles}...`);
+                console.log(`\nprocessing image ${i + 1}/${totalFiles}...`);
                 
                 const result = await processImage(file.buffer);
                 
@@ -27,9 +27,9 @@ export const batchProcessImagesController = async (req, res) => {
                     image_url: result.image_url
                 });
                 
-                console.log(`✅ Image ${i + 1}/${totalFiles} processed successfully`);
+                console.log(`image ${i + 1}/${totalFiles} processed successfully`);
             } catch (error) {
-                console.error(`❌ Error processing image ${i + 1}/${totalFiles}:`, error.message);
+                console.error(`error processing image ${i + 1}/${totalFiles}:`, error.message);
                 errors.push({
                     index: i,
                     error: error.message
@@ -37,9 +37,9 @@ export const batchProcessImagesController = async (req, res) => {
             }
         }
 
-        console.log(`\n📊 Batch processing complete:`);
-        console.log(`   ✅ Success: ${results.length}`);
-        console.log(`   ❌ Errors: ${errors.length}`);
+        console.log(`\nBatch processing complete:`);
+        console.log(`   Success: ${results.length}`);
+        console.log(`   Errors: ${errors.length}`);
 
         // Return summary
         res.status(200).json({
@@ -52,7 +52,7 @@ export const batchProcessImagesController = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Batch processing error:', error);
+        console.error('Batch processing error:', error);
         res.status(500).json({ 
             error: 'Batch processing failed',
             details: error.message 

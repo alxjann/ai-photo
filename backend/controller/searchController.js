@@ -6,10 +6,9 @@ export const searchImagesController = async (req, res) => {
         const { query } = req.body;
 
         if (!query || query.trim() === '') {
-            // No query, return all images WITH image_data
             const { data, error } = await supabase
                 .from('photo')
-                .select('id, image_data, descriptive, literal, created_at')  // ✅ Include image_data!
+                .select('id, image_data, descriptive, literal, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -24,11 +23,9 @@ export const searchImagesController = async (req, res) => {
 
         console.log('🔍 Search query:', query);
 
-        // Generate embedding for the search query
         const queryEmbedding = await generateEmbedding(query);
         console.log('✅ Query embedding generated (dimension:', queryEmbedding.length, ')');
         
-        // Search descriptive embeddings
         const { data: descriptiveResults, error: descError } = await supabase.rpc(
             'match_descriptive_photos',
             {
@@ -39,11 +36,11 @@ export const searchImagesController = async (req, res) => {
         );
 
         if (descError) {
-            console.error('❌ Descriptive search error:', descError);
+            console.error('Descriptive search error:', descError);
             throw descError;
         }
 
-        console.log(`📊 Descriptive results: ${descriptiveResults?.length || 0} matches`);
+        console.log(`Descriptive results: ${descriptiveResults?.length || 0} matches`);
 
         // Search literal embeddings
         const { data: literalResults, error: litError } = await supabase.rpc(
@@ -56,20 +53,19 @@ export const searchImagesController = async (req, res) => {
         );
 
         if (litError) {
-            console.error('❌ Literal search error:', litError);
+            console.error('Literal search error:', litError);
             throw litError;
         }
 
         console.log(`📊 Literal results: ${literalResults?.length || 0} matches`);
 
-        // Combine and deduplicate results
         const allResults = [...(descriptiveResults || []), ...(literalResults || [])];
         const uniqueResults = Array.from(
             new Map(allResults.map(item => [item.id, item])).values()
         );
         uniqueResults.sort((a, b) => b.similarity - a.similarity);
 
-        console.log(`✅ Total unique results: ${uniqueResults.length}`);
+        console.log(`Total unique results: ${uniqueResults.length}`);
 
         res.status(200).json({
             results: uniqueResults,
@@ -78,7 +74,7 @@ export const searchImagesController = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Search error:', error);
+        console.error('Search error:', error);
         res.status(500).json({ 
             error: 'Search failed',
             details: error.message 
