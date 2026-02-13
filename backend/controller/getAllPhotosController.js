@@ -2,20 +2,22 @@ import { supabase } from '../config/supabase.js';
 
 export const getAllPhotosController = async (req, res) => {
     try {
-        console.log('loading all photos from database...');
+        console.log('📥 Loading all photos from database...');
         
+        // ✅ Select all fields including image_data
+        // But we won't log the actual data to avoid console flooding
         const { data, error } = await supabase
             .from('photo')
-            .select('*')
+            .select('id, image_data, descriptive, literal, created_at')
             .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('error:', error);
+            console.error('❌ Database error:', error);
             throw error;
         }
 
-        console.log(`Found ${data?.length || 0} photos in database`);
-        console.log('Photos:', JSON.stringify(data, null, 2));
+        console.log(`✅ Found ${data?.length || 0} photos in database`);
+        // ✅ Don't log the actual data - it contains base64 images!
 
         res.status(200).json({
             success: true,
@@ -24,10 +26,10 @@ export const getAllPhotosController = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('error:', error);
+        console.error('❌ Error fetching photos:', error);
         res.status(500).json({ 
             success: false,
-            error: 'fail to fetch photos',
+            error: 'Failed to fetch photos',
             details: error.message 
         });
     }

@@ -7,137 +7,214 @@ import {
   Alert, 
   ActivityIndicator,
   ScrollView,
-  StyleSheet 
+  StyleSheet,
+  FlatList,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from '../config/api';
 
 export default function UploadScreen() {
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [currentProgress, setCurrentProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState(null);
 
-  const pickImage = async () => {
+  const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
       quality: 1,
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
-      setResult(null); // Clear previous result
+      setImages(result.assets);
+      setResult(null);
     }
   };
 
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
+
   const handleUpload = async () => {
-    if (!image) {
-      Alert.alert('Error', 'Please select an image first');
+    if (images.length === 0) {
+      Alert.alert('Error', 'Please select at least one image');
       return;
     }
 
     setUploading(true);
     setResult(null);
+    setCurrentProgress({ current: 0, total: images.length });
 
-    try {
-      // Create form data
-      const formData = new FormData();
-      formData.append('image', {
-        uri: image,
-        type: 'image/jpeg',
-        name: 'photo.jpg',
-      });
+    const successfulUploads = [];
+    const failedUploads = [];
 
-      console.log('Uploading to:', `${API_URL}/api/image`);
-
-      // Upload to backend - AI will process automatically
-      const response = await fetch(`${API_URL}/api/image`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        Alert.alert(
-          'Success! 🎉', 
-          'AI has analyzed your photo and generated descriptions!'
-        );
-        setResult({
-          success: true,
-          message: 'Image processed with AI successfully'
+    // Upload images one by one for real-time progress
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      
+      // Update progress BEFORE processing
+      setCurrentProgress({ current: i + 1, total: images.length });
+      
+      try {
+        console.log(`📤 Uploading image ${i + 1}/${images.length}...`);
+        
+        const formData = new FormData();
+        formData.append('image', {
+          uri: image.uri,
+          type: 'image/jpeg',
+          name: `photo-${i}.jpg`,
         });
-      } else {
-        throw new Error(data.error || 'Upload failed');
+
+        const response = await fetch(`${API_URL}/api/image`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          successfulUploads.push(i);
+          console.log(`✅ Image ${i + 1}/${images.length} uploaded`);
+        } else {
+          failedUploads.push({ index: i, error: data.error });
+          console.error(`❌ Image ${i + 1}/${images.length} failed:`, data.error);
+        }
+      } catch (error) {
+        failedUploads.push({ index: i, error: error.message });
+        console.error(`❌ Image ${i + 1}/${images.length} error:`, error.message);
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      Alert.alert('Error', error.message || 'Failed to process image');
-      setResult({
-        success: false,
-        error: error.message
-      });
-    } finally {
-      setUploading(false);
     }
+
+    // Show final result
+    const successCount = successfulUploads.length;
+    const failCount = failedUploads.length;
+    
+    Alert.alert(
+      'Upload Complete! 🎉', 
+      `Successfully processed ${successCount} out of ${images.length} photos${
+        failCount > 0 ? `\n${failCount} failed` : ''
+      }`
+    );
+    
+    setResult({
+      success: true,
+      message: `${successCount}/${images.length} images processed`,
+      details: { successful: successCount, failed: failCount }
+    });
+    
+    // Clear images on success
+    if (successCount > 0) {
+      setImages([]);
+    }
+    
+    setUploading(false);
+    setCurrentProgress({ current: 0, total: 0 });
   };
+
+  const renderImagePreview = ({ item, index }) => (
+    <View style={styles.imagePreview}>
+      <Image
+        source={{ uri: item.uri }}
+        style={styles.previewImage}
+        resizeMode="cover"
+      />
+      <TouchableOpacity
+        onPress={() => removeImage(index)}
+        style={styles.removeButton}
+        disabled={uploading}
+      >
+        <Text style={styles.removeButtonText}>✕</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>AI Photo Upload</Text>
+        <Text style={styles.title}>Upload Photos</Text>
         <Text style={styles.subtitle}>
-          Upload a photo and AI will automatically generate descriptive tags
+          Upload up to 10 photos. AI will analyze each automatically.
         </Text>
 
         <TouchableOpacity
-          onPress={pickImage}
+          onPress={pickImages}
           style={styles.selectButton}
+          disabled={uploading}
         >
           <Text style={styles.selectButtonText}>
-            📷 Select Image from Gallery
+            📷 Select Images ({images.length}/10)
           </Text>
         </TouchableOpacity>
 
-        {image && (
-          <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: image }}
-              style={styles.image}
-              resizeMode="cover"
+        {images.length > 0 && (
+          <View style={styles.previewContainer}>
+            <View style={styles.previewHeader}>
+              <Text style={styles.previewTitle}>
+                Selected ({images.length})
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setImages([])}
+                disabled={uploading}
+              >
+                <Text style={styles.clearAllText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={images}
+              renderItem={renderImagePreview}
+              keyExtractor={(item, index) => index.toString()}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.previewList}
             />
           </View>
         )}
 
         <TouchableOpacity
           onPress={handleUpload}
-          disabled={!image || uploading}
+          disabled={images.length === 0 || uploading}
           style={[
             styles.uploadButton,
-            (!image || uploading) && styles.uploadButtonDisabled
+            (images.length === 0 || uploading) && styles.uploadButtonDisabled
           ]}
         >
           {uploading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color="#fff" size="small" />
               <Text style={styles.uploadButtonText}>
-                Processing with AI...
+                Processing {currentProgress.current}/{currentProgress.total}
               </Text>
             </View>
           ) : (
             <Text style={styles.uploadButtonText}>
-              🤖 Upload & Process with AI
+              🤖 Upload & Process {images.length > 0 ? `(${images.length})` : ''}
             </Text>
           )}
         </TouchableOpacity>
 
         {uploading && (
-          <Text style={styles.processingText}>
-            AI is analyzing your photo... This may take 10-20 seconds
-          </Text>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { width: `${(currentProgress.current / currentProgress.total) * 100}%` }
+                ]} 
+              />
+            </View>
+            <Text style={styles.processingText}>
+              🔄 Processing image {currentProgress.current} of {currentProgress.total}
+            </Text>
+            <Text style={styles.processingSubtext}>
+              This may take 10-20 seconds per photo
+            </Text>
+          </View>
         )}
 
         {result && (
@@ -147,19 +224,24 @@ export default function UploadScreen() {
           ]}>
             <Text style={styles.resultText}>
               {result.success ? '✓ ' : '✗ '}
-              {result.success ? result.message : result.error}
+              {result.message}
             </Text>
+            {result.details?.failed > 0 && (
+              <Text style={styles.resultSubtext}>
+                {result.details.failed} image(s) failed to process
+              </Text>
+            )}
           </View>
         )}
 
         <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>What happens when you upload?</Text>
+          <Text style={styles.infoTitle}>How it works</Text>
           <Text style={styles.infoText}>
-            • AI analyzes your photo{'\n'}
-            • Generates literal description (visual facts){'\n'}
-            • Generates descriptive tags (context & mood){'\n'}
-            • Creates searchable embeddings{'\n'}
-            • Saves everything to database
+            • Select up to 10 photos{'\n'}
+            • AI analyzes each photo{'\n'}
+            • Creates searchable descriptions{'\n'}
+            • Uploads one by one for progress tracking{'\n'}
+            • Takes ~10-20 seconds per photo
           </Text>
         </View>
       </View>
@@ -170,7 +252,7 @@ export default function UploadScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#1f2937',
   },
   content: {
     padding: 20,
@@ -179,60 +261,82 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: '#1a1a1a',
+    color: '#fff',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#9ca3af',
     marginBottom: 24,
     lineHeight: 22,
   },
   selectButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#3b82f6',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   selectButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  imageContainer: {
-    alignItems: 'center',
+  previewContainer: {
     marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  image: {
-    width: '100%',
-    height: 300,
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  clearAllText: {
+    color: '#3b82f6',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  previewList: {
+    marginBottom: 8,
+  },
+  imagePreview: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    backgroundColor: '#374151',
+  },
+  removeButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   uploadButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#10b981',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   uploadButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#4b5563',
   },
   uploadButtonText: {
     color: '#fff',
@@ -244,11 +348,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
+  progressContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#374151',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+  },
   processingText: {
-    marginTop: 12,
     textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  processingSubtext: {
+    marginTop: 4,
+    textAlign: 'center',
+    color: '#9ca3af',
+    fontSize: 12,
     fontStyle: 'italic',
   },
   resultContainer: {
@@ -258,35 +384,42 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   resultSuccess: {
-    backgroundColor: '#d4edda',
-    borderColor: '#34C759',
+    backgroundColor: '#065f46',
+    borderColor: '#10b981',
   },
   resultError: {
-    backgroundColor: '#f8d7da',
-    borderColor: '#dc3545',
+    backgroundColor: '#7f1d1d',
+    borderColor: '#ef4444',
   },
   resultText: {
     fontSize: 14,
     textAlign: 'center',
     fontWeight: '500',
+    color: '#fff',
+  },
+  resultSubtext: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#9ca3af',
+    marginTop: 4,
   },
   infoBox: {
     marginTop: 30,
     padding: 16,
-    backgroundColor: '#e3f2fd',
+    backgroundColor: '#374151',
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: '#3b82f6',
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-    color: '#1a1a1a',
+    color: '#fff',
   },
   infoText: {
     fontSize: 14,
-    color: '#555',
+    color: '#9ca3af',
     lineHeight: 22,
   },
 });

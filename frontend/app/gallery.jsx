@@ -9,8 +9,14 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { API_URL } from '../config/api';
+
+const { width } = Dimensions.get('window');
+const numColumns = 3; // 3x3 grid
+const imageSize = width / numColumns;
 
 export default function GalleryScreen() {
   const [photos, setPhotos] = useState([]);
@@ -19,7 +25,6 @@ export default function GalleryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  // load all photos 
   useEffect(() => {
     loadAllPhotos();
   }, []);
@@ -27,8 +32,6 @@ export default function GalleryScreen() {
   const loadAllPhotos = async () => {
     setLoading(true);
     try {
-      console.log('Loading photos from:', `${API_URL}/api/search`);
-      
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
         headers: { 
@@ -37,19 +40,17 @@ export default function GalleryScreen() {
         body: JSON.stringify({ query: '' }), 
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
+      console.log(`✅ Loaded ${data.results?.length || 0} photos`);
       
       if (response.ok) {
         setPhotos(data.results || []);
-        console.log(`Loaded ${data.results?.length || 0} photos`);
       } else {
-        console.error('Error response:', data);
+        console.error('❌ Error:', data.error);
         throw new Error(data.error || 'Failed to load photos');
       }
     } catch (error) {
-      console.error('Load error:', error);
+      console.error('❌ Load error:', error.message);
       Alert.alert('Error', `Failed to load photos: ${error.message}`);
     } finally {
       setLoading(false);
@@ -71,7 +72,7 @@ export default function GalleryScreen() {
 
     setSearching(true);
     try {
-      console.log('Searching for:', searchQuery);
+      console.log('🔍 Searching for:', searchQuery);
       
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
@@ -80,18 +81,18 @@ export default function GalleryScreen() {
       });
 
       const data = await response.json();
+      console.log(`✅ Search complete: ${data.count || 0} results`);
       
       if (response.ok) {
         setPhotos(data.results || []);
-        Alert.alert(
-          'Search Complete',
-          `Found ${data.count || 0} ${data.count === 1 ? 'photo' : 'photos'}`
-        );
+        if (data.count === 0) {
+          Alert.alert('No Results', 'No photos match your search');
+        }
       } else {
         throw new Error(data.error || 'Search failed');
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('❌ Search error:', error.message);
       Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
       setSearching(false);
@@ -104,38 +105,36 @@ export default function GalleryScreen() {
   };
 
   const renderPhoto = ({ item }) => (
-    <View style={styles.photoCard}>
-      <View style={styles.photoHeader}>
-        <Text style={styles.photoId}>Photo ID: {item.id.substring(0, 8)}...</Text>
-        {item.similarity && (
-          <Text style={styles.similarity}>
-            {Math.round(item.similarity * 100)}% match
+    <View style={styles.photoContainer}>
+      {item.image_data ? (
+        <Image
+          source={{ uri: item.image_data }}
+          style={styles.photoImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.photoImage, styles.placeholderImage]}>
+          <Text style={styles.placeholderText}>📷</Text>
+        </View>
+      )}
+      {/* Show similarity badge on search results */}
+      {item.similarity && (
+        <View style={styles.similarityBadge}>
+          <Text style={styles.similarityText}>
+            {Math.round(item.similarity * 100)}%
           </Text>
-        )}
-      </View>
-
-      <View style={styles.descriptionContainer}>
-        <Text style={styles.descriptionLabel}>🎯 Descriptive:</Text>
-        <Text style={styles.descriptionText}>{item.descriptive}</Text>
-      </View>
-
-      <View style={styles.descriptionContainer}>
-        <Text style={styles.descriptionLabel}>👁️ Literal:</Text>
-        <Text style={styles.descriptionText}>{item.literal}</Text>
-      </View>
-
-      <Text style={styles.timestamp}>
-        {new Date(item.created_at).toLocaleString()}
-      </Text>
+        </View>
+      )}
     </View>
   );
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.title}>AI Photo Gallery</Text>
+            <Text style={styles.title}>Gallery</Text>
             <Text style={styles.subtitle}>
               {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
             </Text>
@@ -154,10 +153,12 @@ export default function GalleryScreen() {
         </View>
       </View>
 
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search with AI... (e.g., 'happy moments', 'sunset')"
+          placeholder="Search photos..."
+          placeholderTextColor="#9ca3af"
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
@@ -185,10 +186,11 @@ export default function GalleryScreen() {
 
       {searching && (
         <Text style={styles.searchingText}>
-          AI is searching through embeddings...
+          Searching...
         </Text>
       )}
 
+      {/* Gallery Grid */}
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
@@ -205,7 +207,7 @@ export default function GalleryScreen() {
             onPress={handleRefresh}
             style={styles.retryButton}
           >
-            <Text style={styles.retryButtonText}>🔄 Retry Loading</Text>
+            <Text style={styles.retryButtonText}>🔄 Refresh</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -213,7 +215,9 @@ export default function GalleryScreen() {
           data={photos}
           renderItem={renderPhoto}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          numColumns={numColumns}
+          key={numColumns} // Force re-render if columns change
+          contentContainerStyle={styles.gridContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -231,13 +235,14 @@ export default function GalleryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#1f2937', // Dark background like test.jsx
   },
   header: {
-    padding: 20,
-    backgroundColor: '#fff',
+    padding: 16,
+    paddingTop: 20,
+    backgroundColor: '#374151',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#4b5563',
   },
   headerTop: {
     flexDirection: 'row',
@@ -245,72 +250,73 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1a1a1a',
+    color: '#fff',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 12,
+    color: '#9ca3af',
     marginTop: 4,
   },
   refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#f0f0f0',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4b5563',
     justifyContent: 'center',
     alignItems: 'center',
   },
   refreshIcon: {
-    fontSize: 24,
+    fontSize: 20,
   },
   searchContainer: {
     flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: 12,
+    backgroundColor: '#374151',
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: '#4b5563',
     gap: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
+    height: 40,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#4b5563',
     borderRadius: 8,
     paddingHorizontal: 12,
     fontSize: 14,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#1f2937',
+    color: '#fff',
   },
   clearButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#4b5563',
     borderRadius: 8,
   },
   clearButtonText: {
     fontSize: 18,
-    color: '#666',
+    color: '#9ca3af',
   },
   searchButton: {
-    width: 44,
-    height: 44,
-    backgroundColor: '#007AFF',
+    width: 40,
+    height: 40,
+    backgroundColor: '#3b82f6',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   searchButtonText: {
-    fontSize: 20,
+    fontSize: 18,
   },
   searchingText: {
     textAlign: 'center',
-    color: '#666',
-    fontSize: 14,
-    marginVertical: 8,
+    color: '#9ca3af',
+    fontSize: 12,
+    paddingVertical: 8,
     fontStyle: 'italic',
   },
   loadingContainer: {
@@ -320,8 +326,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#666',
-    fontSize: 16,
+    color: '#9ca3af',
+    fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
@@ -330,82 +336,62 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 48,
+    marginBottom: 12,
   },
   emptyText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#666',
+    color: '#9ca3af',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginBottom: 24,
+    color: '#6b7280',
+    marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   retryButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  listContent: {
-    padding: 16,
-  },
-  photoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  photoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  photoId: {
-    fontSize: 12,
-    color: '#999',
-    fontFamily: 'monospace',
-  },
-  similarity: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#34C759',
-    backgroundColor: '#d4edda',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  descriptionContainer: {
-    marginBottom: 12,
-  },
-  descriptionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
-  },
-  descriptionText: {
     fontSize: 14,
-    color: '#1a1a1a',
-    lineHeight: 20,
+    fontWeight: '600',
   },
-  timestamp: {
-    fontSize: 11,
-    color: '#999',
-    marginTop: 8,
+  gridContent: {
+    paddingBottom: 20,
+  },
+  photoContainer: {
+    position: 'relative',
+  },
+  photoImage: {
+    width: imageSize,
+    height: imageSize,
+    backgroundColor: '#374151',
+  },
+  placeholderImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    fontSize: 32,
+    opacity: 0.3,
+  },
+  similarityBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  similarityText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
