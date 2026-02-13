@@ -13,6 +13,6 @@ export const processImageController = async (req, res) => {
         });
     } catch (error) {
         console.error('error:', error);
-        res.status(500).json({ error: 'fai;ed to process image' });
+        res.status(500).json({ error: 'failed to process image' });
     }
 };

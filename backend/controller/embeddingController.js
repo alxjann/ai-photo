@@ -7,7 +7,7 @@ export const generateEmbeddingController = async (req, res) => {
         if (!text)
             return res.status(400).json({ error: "no text provided"})
 
-        const embedding = await generateEmbedding(text);
+        await generateEmbedding(text);
 
         res.status(200).json({
             message: "embedding generated successfully"
