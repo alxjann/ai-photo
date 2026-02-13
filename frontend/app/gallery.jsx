@@ -15,7 +15,7 @@ import {
 import { API_URL } from '../config/api';
 
 const { width } = Dimensions.get('window');
-const numColumns = 3; // but we can change later if we want
+const numColumns = 3;
 const imageSize = width / numColumns;
 
 export default function GalleryScreen() {
@@ -24,6 +24,7 @@ export default function GalleryScreen() {
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [searchMode, setSearchMode] = useState('balanced');
 
   useEffect(() => {
     loadAllPhotos();
@@ -34,23 +35,18 @@ export default function GalleryScreen() {
     try {
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: '' }), 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: '' }),
       });
 
       const data = await response.json();
-      console.log(`Loaded ${data.results?.length || 0} photos`);
       
       if (response.ok) {
         setPhotos(data.results || []);
       } else {
-        console.error('error:', data.error);
         throw new Error(data.error || 'Failed to load photos');
       }
     } catch (error) {
-      console.error('error:', error.message);
       Alert.alert('Error', `Failed to load photos: ${error.message}`);
     } finally {
       setLoading(false);
@@ -58,10 +54,16 @@ export default function GalleryScreen() {
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setSearchQuery('');
-    loadAllPhotos();
+  const getSearchWeights = () => {
+    switch (searchMode) {
+      case 'keyword':
+        return { fullTextWeight: 2.0, semanticWeight: 0.5 };
+      case 'semantic':
+        return { fullTextWeight: 0.5, semanticWeight: 2.0 };
+      case 'balanced':
+      default:
+        return { fullTextWeight: 1.0, semanticWeight: 1.0 };
+    }
   };
 
   const handleSearch = async () => {
@@ -72,16 +74,18 @@ export default function GalleryScreen() {
 
     setSearching(true);
     try {
-      console.log('searching for:', searchQuery);
+      const weights = getSearchWeights();
       
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify({ 
+          query: searchQuery,
+          ...weights
+        }),
       });
 
       const data = await response.json();
-      console.log(`search complete: ${data.count || 0} results`);
       
       if (response.ok) {
         setPhotos(data.results || []);
@@ -92,11 +96,16 @@ export default function GalleryScreen() {
         throw new Error(data.error || 'Search failed');
       }
     } catch (error) {
-      console.error('search error:', error.message);
       Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
       setSearching(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setSearchQuery('');
+    loadAllPhotos();
   };
 
   const handleClearSearch = () => {
@@ -114,14 +123,13 @@ export default function GalleryScreen() {
         />
       ) : (
         <View style={[styles.photoImage, styles.placeholderImage]}>
-          <Text style={styles.placeholderText}>📷</Text>
+          <Text style={styles.placeholderText}>No Image</Text>
         </View>
       )}
-      {/* Show similarity badge on search results */}
-      {item.similarity && (
-        <View style={styles.similarityBadge}>
-          <Text style={styles.similarityText}>
-            {Math.round(item.similarity * 100)}%
+      {item.final_score && (
+        <View style={styles.scoreBadge}>
+          <Text style={styles.scoreText}>
+            {Math.round(item.final_score * 100)}
           </Text>
         </View>
       )}
@@ -130,7 +138,6 @@ export default function GalleryScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
@@ -147,13 +154,12 @@ export default function GalleryScreen() {
             {refreshing ? (
               <ActivityIndicator color="#007AFF" size="small" />
             ) : (
-              <Text style={styles.refreshIcon}>🔄</Text>
+              <Text style={styles.refreshIcon}>Refresh</Text>
             )}
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -168,7 +174,7 @@ export default function GalleryScreen() {
             onPress={handleClearSearch}
             style={styles.clearButton}
           >
-            <Text style={styles.clearButtonText}>✕</Text>
+            <Text style={styles.clearButtonText}>X</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -179,18 +185,29 @@ export default function GalleryScreen() {
           {searching ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.searchButtonText}>🔍</Text>
+            <Text style={styles.searchButtonText}>Search</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {searching && (
-        <Text style={styles.searchingText}>
-          Searching...
-        </Text>
-      )}
+      <View style={styles.searchModeContainer}>
+        <Text style={styles.searchModeLabel}>Mode:</Text>
+        {['keyword', 'balanced', 'semantic'].map(mode => (
+          <TouchableOpacity
+            key={mode}
+            onPress={() => setSearchMode(mode)}
+            style={[
+              styles.modeButton,
+              searchMode === mode && styles.modeButtonActive
+            ]}
+          >
+            <Text style={styles.modeButtonText}>
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-      {/* Gallery Grid */}
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
@@ -198,17 +215,11 @@ export default function GalleryScreen() {
         </View>
       ) : photos.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📷</Text>
+          <Text style={styles.emptyIcon}>No Photos</Text>
           <Text style={styles.emptyText}>No photos yet</Text>
           <Text style={styles.emptySubtext}>
-            Upload some photos to get started!
+            Upload some photos to get started
           </Text>
-          <TouchableOpacity
-            onPress={handleRefresh}
-            style={styles.retryButton}
-          >
-            <Text style={styles.retryButtonText}>🔄 Refresh</Text>
-          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -216,7 +227,7 @@ export default function GalleryScreen() {
           renderItem={renderPhoto}
           keyExtractor={(item) => item.id}
           numColumns={numColumns}
-          key={numColumns} // Force re-render if columns change
+          key={numColumns}
           contentContainerStyle={styles.gridContent}
           refreshControl={
             <RefreshControl
@@ -268,7 +279,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   refreshIcon: {
-    fontSize: 20,
+    fontSize: 12,
+    color: '#fff',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -302,7 +314,7 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
   },
   searchButton: {
-    width: 40,
+    width: 80,
     height: 40,
     backgroundColor: '#3b82f6',
     borderRadius: 8,
@@ -310,14 +322,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchButtonText: {
-    fontSize: 18,
+    fontSize: 14,
+    color: '#fff',
+    fontWeight: '600',
   },
-  searchingText: {
-    textAlign: 'center',
+  searchModeContainer: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchModeLabel: {
     color: '#9ca3af',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  modeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: '#4b5563',
+  },
+  modeButtonActive: {
+    backgroundColor: '#3b82f6',
+  },
+  modeButtonText: {
+    color: '#fff',
     fontSize: 12,
-    paddingVertical: 8,
-    fontStyle: 'italic',
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
@@ -348,18 +381,6 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#6b7280',
-    marginBottom: 20,
-  },
-  retryButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   gridContent: {
     paddingBottom: 20,
@@ -377,10 +398,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   placeholderText: {
-    fontSize: 32,
+    fontSize: 12,
     opacity: 0.3,
+    color: '#fff',
   },
-  similarityBadge: {
+  scoreBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
@@ -389,7 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 8,
   },
-  similarityText: {
+  scoreText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: '600',
