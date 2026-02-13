@@ -129,7 +129,7 @@ export default function GalleryScreen() {
       {item.final_score && (
         <View style={styles.scoreBadge}>
           <Text style={styles.scoreText}>
-            {Math.round(item.final_score * 100)}
+            K:{Math.round(item.fts_rank * 100)} S:{Math.round(item.semantic_rank * 100)}
           </Text>
         </View>
       )}
