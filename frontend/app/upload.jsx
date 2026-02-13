@@ -58,7 +58,7 @@ export default function UploadScreen() {
       setCurrentProgress({ current: i + 1, total: images.length });
       
       try {
-        console.log(`📤 Uploading image ${i + 1}/${images.length}...`);
+        console.log(`Uploading image ${i + 1}/${images.length}...`);
         
         const formData = new FormData();
         formData.append('image', {
@@ -79,14 +79,14 @@ export default function UploadScreen() {
 
         if (response.ok) {
           successfulUploads.push(i);
-          console.log(`✅ Image ${i + 1}/${images.length} uploaded`);
+          console.log(`Image ${i + 1}/${images.length} uploaded`);
         } else {
           failedUploads.push({ index: i, error: data.error });
-          console.error(`❌ Image ${i + 1}/${images.length} failed:`, data.error);
+          console.error(`Image ${i + 1}/${images.length} failed:`, data.error);
         }
       } catch (error) {
         failedUploads.push({ index: i, error: error.message });
-        console.error(`❌ Image ${i + 1}/${images.length} error:`, error.message);
+        console.error(`Image ${i + 1}/${images.length} error:`, error.message);
       }
     }
 
@@ -95,7 +95,7 @@ export default function UploadScreen() {
     const failCount = failedUploads.length;
     
     Alert.alert(
-      'Upload Complete! 🎉', 
+      'Upload Complete', 
       `Successfully processed ${successCount} out of ${images.length} photos${
         failCount > 0 ? `\n${failCount} failed` : ''
       }`
