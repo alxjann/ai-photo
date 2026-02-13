@@ -35,7 +35,8 @@ export const searchImagesController = async (req, res) => {
                 match_count: 20,
                 full_text_weight: fullTextWeight,
                 semantic_weight: semanticWeight,
-                rrf_k: rrfK
+                rrf_k: rrfK,
+                min_score: 0.015
             }
         );
 
