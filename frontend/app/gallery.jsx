@@ -57,50 +57,65 @@ export default function GalleryScreen() {
   const getSearchWeights = () => {
     switch (searchMode) {
       case 'keyword':
-        return { fullTextWeight: 2.0, semanticWeight: 0.5 };
+        return { fullTextWeight: 3.0, semanticWeight: 0.5 };
       case 'semantic':
         return { fullTextWeight: 0.5, semanticWeight: 2.0 };
       case 'balanced':
       default:
-        return { fullTextWeight: 1.0, semanticWeight: 1.0 };
+        return { fullTextWeight: 1.5, semanticWeight: 1.0 };
     }
   };
 
-  const handleSearch = async () => {
+const handleSearch = async () => {
     if (!searchQuery.trim()) {
-      loadAllPhotos();
-      return;
+        loadAllPhotos();
+        return;
     }
 
     setSearching(true);
     try {
-      const weights = getSearchWeights();
-      
-      const response = await fetch(`${API_URL}/api/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          query: searchQuery,
-          ...weights
-        }),
-      });
+        const weights = getSearchWeights();
+        
+        console.log('=== FRONTEND SEARCH ===');
+        console.log('Query:', searchQuery);
+        console.log('Mode:', searchMode);
+        console.log('Weights:', weights);
+        
+        const response = await fetch(`${API_URL}/api/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                query: searchQuery,
+                ...weights
+            }),
+        });
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        setPhotos(data.results || []);
-        if (data.count === 0) {
-          Alert.alert('No Results', 'No photos match your search');
+        const data = await response.json();
+        
+        console.log('Results received:', data.count);
+        if (data.results && data.results.length > 0) {
+            console.log('Top 3 scores:', data.results.slice(0, 3).map(r => ({
+                fts: r.fts_rank?.toFixed(4),
+                semantic: r.semantic_rank?.toFixed(4),
+                final: r.final_score?.toFixed(4)
+            })));
         }
-      } else {
-        throw new Error(data.error || 'Search failed');
-      }
+        console.log('======================');
+        
+        if (response.ok) {
+            setPhotos(data.results || []);
+            if (data.count === 0) {
+                Alert.alert('No Results', 'No photos match your search');
+            }
+        } else {
+            throw new Error(data.error || 'Search failed');
+        }
     } catch (error) {
-      Alert.alert('Error', `Search failed: ${error.message}`);
+        Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
-      setSearching(false);
+        setSearching(false);
     }
-  };
+};
 
   const handleRefresh = () => {
     setRefreshing(true);

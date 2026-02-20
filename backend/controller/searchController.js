@@ -25,7 +25,12 @@ export const searchImagesController = async (req, res) => {
             });
         }
 
+        console.log('=== SEARCH DEBUG ===');
+        console.log('Query:', query);
+        console.log('Weights - FTS:', fullTextWeight, 'Semantic:', semanticWeight);
+
         const queryEmbedding = await generateEmbedding(query);
+        console.log('Embedding generated, dimension:', queryEmbedding.length);
         
         const { data: results, error } = await supabase.rpc(
             'hybrid_search_photos',
@@ -36,11 +41,27 @@ export const searchImagesController = async (req, res) => {
                 full_text_weight: fullTextWeight,
                 semantic_weight: semanticWeight,
                 rrf_k: rrfK,
-                min_score: 0.015
+                min_score: 0.025
             }
         );
 
         if (error) throw error;
+
+        console.log('Total results:', results?.length || 0);
+        
+        if (results && results.length > 0) {
+            console.log('=== TOP 5 RESULTS ===');
+            results.slice(0, 5).forEach((r, i) => {
+                console.log(`${i + 1}.`, {
+                    id: r.id.substring(0, 8),
+                    fts_rank: r.fts_rank.toFixed(4),
+                    semantic_rank: r.semantic_rank.toFixed(4),
+                    final_score: r.final_score.toFixed(4),
+                    tags: r.tags?.substring(0, 60)
+                });
+            });
+        }
+        console.log('===================');
 
         res.status(200).json({
             results: results,

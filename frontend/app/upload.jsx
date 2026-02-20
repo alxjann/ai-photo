@@ -37,7 +37,7 @@ export default function UploadScreen() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleUpload = async () => {
+const handleUpload = async () => {
     if (images.length === 0) {
       Alert.alert('Error', 'Please select at least one image');
       return;
@@ -49,12 +49,11 @@ export default function UploadScreen() {
 
     const successfulUploads = [];
     const failedUploads = [];
+    let duplicateCount = 0;
 
-    // Upload images one by one for real-time progress
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       
-      // Update progress BEFORE processing
       setCurrentProgress({ current: i + 1, total: images.length });
       
       try {
@@ -75,39 +74,54 @@ export default function UploadScreen() {
           },
         });
 
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
 
         if (response.ok) {
           successfulUploads.push(i);
-          console.log(`Image ${i + 1}/${images.length} uploaded`);
+          console.log(`Image ${i + 1}/${images.length} uploaded successfully`);
         } else {
-          failedUploads.push({ index: i, error: data.error });
-          console.error(`Image ${i + 1}/${images.length} failed:`, data.error);
+          const errorMsg = data.error || data.details || 'Unknown error';
+          console.log('Error message:', errorMsg);
+          
+          if (errorMsg.includes('Duplicate')) {
+            duplicateCount++;
+            console.log(`Image ${i + 1} is a duplicate - skipped`);
+          } else {
+            failedUploads.push({ index: i, error: errorMsg });
+            console.error(`Image ${i + 1}/${images.length} failed:`, errorMsg);
+          }
         }
       } catch (error) {
-        failedUploads.push({ index: i, error: error.message });
         console.error(`Image ${i + 1}/${images.length} error:`, error.message);
+        failedUploads.push({ index: i, error: error.message });
       }
     }
 
-    // Show final result
     const successCount = successfulUploads.length;
     const failCount = failedUploads.length;
     
-    Alert.alert(
-      'Upload Complete', 
-      `Successfully processed ${successCount} out of ${images.length} photos${
-        failCount > 0 ? `\n${failCount} failed` : ''
-      }`
-    );
+    let message = `Successfully processed ${successCount} out of ${images.length} photos`;
+    if (duplicateCount > 0) {
+      message += `\n${duplicateCount} duplicate(s) skipped`;
+    }
+    if (failCount > 0) {
+      message += `\n${failCount} failed`;
+    }
+    
+    Alert.alert('Upload Complete', message);
     
     setResult({
       success: true,
       message: `${successCount}/${images.length} images processed`,
-      details: { successful: successCount, failed: failCount }
+      details: { 
+        successful: successCount, 
+        failed: failCount,
+        duplicates: duplicateCount
+      }
     });
     
-    // Clear images on success
     if (successCount > 0) {
       setImages([]);
     }

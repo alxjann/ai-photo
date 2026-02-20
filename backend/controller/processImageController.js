@@ -3,16 +3,24 @@ import { processImage } from '../services/processImage.js';
 export const processImageController = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'no image file provided' });
+            return res.status(400).json({ error: 'No image file provided' });
         }
 
-        await processImage(req.file.buffer);
-
+        const result = await processImage(req.file.buffer);
+        
         res.status(200).json({
-            message: 'image processed successfully'
+            message: 'Image processed successfully',
+            ...result
         });
+
     } catch (error) {
         console.error('error:', error);
-        res.status(500).json({ error: 'fai;ed to process image' });
+        
+        const statusCode = error.message.includes('Duplicate') ? 409 : 500;
+        
+        res.status(statusCode).json({ 
+            error: error.message,
+            details: error.message
+        });
     }
 };
