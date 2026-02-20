@@ -1,51 +1,76 @@
 import { Tabs } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions } from 'react-native';
 import '../global.css';
 
 export default function RootLayout() {
   const insets = useSafeAreaInsets();
+  const screenHeight = Dimensions.get('window').height;
+  // Responsive header height: 12% of screen height, min 150, max 200
+  const headerHeight = Math.max(125, Math.min(150, screenHeight * 0.12));
+  // Responsive padding: 4% of screen height, min 16, max 40
+  const headerPaddingTop = Math.max(16, Math.min(40, screenHeight * 0.04)) + insets.top;
 
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: '#9ca3af',
-        tabBarStyle: {
-          backgroundColor: '#374151',
-          borderTopWidth: 0,
-          height: 45 + insets.bottom,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        headerStyle: {
-          backgroundColor: '#374151',
-        },
-        headerTintColor: '#fff',
-      }}
-    >
-      <Tabs.Screen 
-        name="test" 
-        options={{ 
-          title: 'Test',
-          tabBarLabel: 'Test',
-          tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color} />
-          ),
-        }} 
-      />
-      <Tabs.Screen 
-        name="albums" 
-        options={{ 
-          title: 'Albums',
-          tabBarLabel: 'Albums',
-        }} 
-      />
-    </Tabs>
-  );
+    <>
+      <StatusBar style="dark" />
+        <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: '#000',
+          tabBarInactiveTintColor: '#9ca3af',
+          tabBarStyle: {
+            backgroundColor: '#F5F5F7',
+            borderTopWidth: 0,
+            height: 55 + insets.bottom,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '600',
+          },
+          headerStyle: {
+            backgroundColor: '#F5F5F7',
+            height: headerHeight,
+            paddingTop: headerPaddingTop,
+          },
+        }}
+      >
+        <Tabs.Screen 
+          name="test" 
+          options={{ 
+            headerTitle: 'Photos',
+            headerTitleAlign: 'left',
+            headerTitleStyle: {
+              fontSize: 28,
+              fontWeight: 'bold',
+              marginLeft: 0,
+              marginTop: 12
+            },
+            tabBarLabel: 'Library',
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color} />
+            ),
+          }} 
+        />
+        <Tabs.Screen 
+          name="albums" 
+          options={{ 
+            headerTitle: 'Albums',
+            headerTitleAlign: 'left',
+            headerTitleStyle: {
+              fontSize: 28,
+              fontWeight: 'bold',
+              marginLeft: 0,
+              marginTop: 12
+            },
+            tabBarLabel: 'Albums',
+          }} 
+        />
+        </Tabs>
+    </>
+  )
 }
