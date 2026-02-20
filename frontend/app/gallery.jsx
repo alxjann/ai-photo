@@ -32,19 +32,18 @@ export default function GalleryScreen() {
   const loadAllPhotos = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/search`, {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/api/photos`, {
+        method: 'GET',
         headers: { 
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: '' }), 
+        }
       });
 
       const data = await response.json();
-      console.log(`Loaded ${data.results?.length || 0} photos`);
+      console.log(`Loaded ${data.result?.length || 0} photos`);
       
       if (response.ok) {
-        setPhotos(data.results || []);
+        setPhotos(data.result || []);
       } else {
         console.error('error:', data.error);
         throw new Error(data.error || 'Failed to load photos');
@@ -82,7 +81,6 @@ export default function GalleryScreen() {
 
       const data = await response.json();
       console.log(`search complete: ${data.count || 0} results`);
-      
       if (response.ok) {
         setPhotos(data.results || []);
         if (data.count === 0) {
