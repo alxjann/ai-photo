@@ -26,12 +26,12 @@ export const processImage = async (image) => {
     const literalEmbedding = await generateEmbedding(literal);
     
     // 5. Validate embeddings
-    if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) {
+    if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) 
         throw new Error(`Invalid descriptive embedding dimension: ${descriptiveEmbedding?.length}`);
-    }
-    if (!literalEmbedding || literalEmbedding.length !== 1536) {
+    
+    if (!literalEmbedding || literalEmbedding.length !== 1536) 
         throw new Error(`Invalid literal embedding dimension: ${literalEmbedding?.length}`);
-    }
+    
     
     console.log('Embeddings generated (1536 dimensions each)');
     

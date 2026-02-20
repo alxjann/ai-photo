@@ -11,7 +11,7 @@ export const searchImage = async (query) => {
 
         if (error) throw error;
         console.log(`Returning all ${data?.length || 0} photos`);
-        return { results: data, message: 'All images returned' };
+        return data;
     }
 
     console.log('Search query:', query);
@@ -53,9 +53,5 @@ export const searchImage = async (query) => {
 
     console.log(`Total unique results: ${uniqueResults.length}`);
 
-    return {
-        results: uniqueResults,
-        query: query,
-        count: uniqueResults.length
-    };
+    return uniqueResults;
 }

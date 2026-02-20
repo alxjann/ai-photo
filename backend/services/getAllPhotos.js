@@ -8,9 +8,6 @@ export const getAllPhotos = async () => {
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return {
-        success: true,
-        count: data.length,
-        results: data,
-    };
+
+    return data;
 };
