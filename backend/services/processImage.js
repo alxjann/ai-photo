@@ -1,13 +1,13 @@
 import { supabase } from '../config/supabase.js';
-import { getCompressedImageBuffer } from '../utils/compressImage.js';
+import { getCompressedImageBuffer, getThumbnailBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 import phash from 'sharp-phash';
 
 export const processImage = async (image, manualDescription = null) => {
     const compressedImage = await getCompressedImageBuffer(image);
-    
-    console.log('Computing perceptual hash...');
+    const thumbnailBuffer = await getThumbnailBuffer(image);
+
     const imageHash = await phash(compressedImage);
     
     const { data: existingPhotos } = await supabase
@@ -18,18 +18,15 @@ export const processImage = async (image, manualDescription = null) => {
         for (const photo of existingPhotos) {
             if (photo.phash) {
                 const distance = hammingDistance(imageHash, photo.phash);
-                
                 if (distance < 5) {
-                    console.log('DUPLICATE FOUND - perceptual hash match');
                     throw new Error(`Duplicate image detected (perceptual hash distance: ${distance})`);
                 }
             }
         }
     }
     
-    console.log('No duplicates found, proceeding with AI analysis');
-    
     const base64Image = `data:image/jpeg;base64,${compressedImage.toString('base64')}`;
+    const base64Thumbnail = `data:image/jpeg;base64,${thumbnailBuffer.toString('base64')}`;
     const description = await describeImage(compressedImage);
     
     const literalStart = description.indexOf("[LITERAL]");
@@ -41,9 +38,7 @@ export const processImage = async (image, manualDescription = null) => {
     const tags = description.substring(tagsStart + 6).trim().toLowerCase();
     
     if (manualDescription && manualDescription.trim()) {
-        const userNote = manualDescription.trim();
-        descriptive = `${descriptive} User note: ${userNote}`;
-        console.log('Added manual description:', userNote);
+        descriptive = `${descriptive} User note: ${manualDescription.trim()}`;
     }
     
     const descriptiveEmbedding = await generateEmbedding(descriptive);
@@ -60,9 +55,10 @@ export const processImage = async (image, manualDescription = null) => {
         .from("photo")
         .insert({
             image_data: base64Image,
-            descriptive: descriptive,
-            literal: literal,
-            tags: tags,
+            thumbnail_data: base64Thumbnail,
+            descriptive,
+            literal,
+            tags,
             phash: imageHash,
             manual_description: manualDescription?.trim() || null,
             descriptive_embedding: descriptiveEmbedding,

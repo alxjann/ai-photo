@@ -25,7 +25,6 @@ export default function GalleryScreen() {
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [searchMode, setSearchMode] = useState('balanced');
   const [viewerVisible, setViewerVisible] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
@@ -43,7 +42,7 @@ export default function GalleryScreen() {
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setPhotos(data.results || []);
       } else {
@@ -57,18 +56,6 @@ export default function GalleryScreen() {
     }
   };
 
-  const getSearchWeights = () => {
-    switch (searchMode) {
-      case 'keyword':
-        return { fullTextWeight: 3.0, semanticWeight: 0.5 };
-      case 'semantic':
-        return { fullTextWeight: 0.5, semanticWeight: 2.0 };
-      case 'balanced':
-      default:
-        return { fullTextWeight: 1.5, semanticWeight: 1.0 };
-    }
-  };
-
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       loadAllPhotos();
@@ -77,19 +64,18 @@ export default function GalleryScreen() {
 
     setSearching(true);
     try {
-      const weights = getSearchWeights();
-      
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           query: searchQuery,
-          ...weights
+          fullTextWeight: 0.5,
+          semanticWeight: 2.0,
         }),
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setPhotos(data.results || []);
         if (data.count === 0) {
@@ -126,14 +112,14 @@ export default function GalleryScreen() {
   };
 
   const renderPhoto = ({ item, index }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.photoContainer}
       onPress={() => handlePhotoPress(index)}
       activeOpacity={0.8}
     >
-      {item.image_data ? (
+      {item.thumbnail_data ? (
         <Image
-          source={{ uri: item.image_data }}
+          source={{ uri: item.thumbnail_data }}
           style={styles.photoImage}
           resizeMode="cover"
         />
@@ -204,24 +190,6 @@ export default function GalleryScreen() {
             <Text style={styles.searchButtonText}>Search</Text>
           )}
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchModeContainer}>
-        <Text style={styles.searchModeLabel}>Mode:</Text>
-        {['keyword', 'balanced', 'semantic'].map(mode => (
-          <TouchableOpacity
-            key={mode}
-            onPress={() => setSearchMode(mode)}
-            style={[
-              styles.modeButton,
-              searchMode === mode && styles.modeButtonActive
-            ]}
-          >
-            <Text style={styles.modeButtonText}>
-              {mode.charAt(0).toUpperCase() + mode.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
       </View>
 
       {loading && !refreshing ? (
@@ -348,32 +316,6 @@ const styles = StyleSheet.create({
   searchButtonText: {
     fontSize: 14,
     color: '#fff',
-    fontWeight: '600',
-  },
-  searchModeContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#374151',
-    alignItems: 'center',
-    gap: 8,
-  },
-  searchModeLabel: {
-    color: '#9ca3af',
-    fontSize: 14,
-    marginRight: 8,
-  },
-  modeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#4b5563',
-  },
-  modeButtonActive: {
-    backgroundColor: '#3b82f6',
-  },
-  modeButtonText: {
-    color: '#fff',
-    fontSize: 12,
     fontWeight: '600',
   },
   loadingContainer: {

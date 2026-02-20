@@ -11,19 +11,19 @@ export const searchImagesController = async (req, res) => {
         } = req.body;
 
         if (!query || query.trim() === '') {
-            const { data, error } = await supabase
-                .from('photo')
-                .select('id, image_data, descriptive, literal, tags, created_at')
-                .order('created_at', { ascending: false });
+        const { data, error } = await supabase
+        .from('photo')
+        .select('id, thumbnail_data, descriptive, literal, tags, created_at')
+        .order('created_at', { ascending: false });
 
-            if (error) throw error;
+         if (error) throw error;
 
-            return res.status(200).json({
-                results: data,
-                message: 'All images returned',
-                searchType: 'all'
-            });
-        }
+        return res.status(200).json({
+        results: data,
+        message: 'All images returned',
+        searchType: 'all'
+      });
+}
 
         console.log('=== SEARCH DEBUG ===');
         console.log('Query:', query);

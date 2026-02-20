@@ -24,8 +24,11 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
   const [deleting, setDeleting] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const [loadedImages, setLoadedImages] = useState({});
   const flatListRef = useRef(null);
   const thumbnailListRef = useRef(null);
+
+  const currentPhoto = photos[currentIndex];
 
   const onViewableItemsChanged = useRef(({ viewableItems }) => {
     if (viewableItems.length > 0) {
@@ -58,9 +61,20 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
     }
   }, [visible, initialIndex]);
 
-  if (!visible || !photos || photos.length === 0) return null;
+  useEffect(() => {
+    if (visible && currentPhoto && !loadedImages[currentPhoto.id]) {
+      fetch(`${API_URL}/api/photo/${currentPhoto.id}`)
+        .then(r => r.json())
+        .then(data => {
+          setLoadedImages(prev => ({
+            ...prev,
+            [currentPhoto.id]: data.image_data,
+          }));
+        });
+    }
+  }, [currentPhoto?.id, visible]);
 
-  const currentPhoto = photos[currentIndex];
+  if (!visible || !photos || photos.length === 0) return null;
   if (!currentPhoto) return null;
 
   const handleDelete = () => {
@@ -104,21 +118,25 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
     setCurrentIndex(index);
   };
 
-  const renderPhoto = ({ item }) => (
-    <Pressable
-      style={styles.photoSlide}
-      onPress={() => {
-        setShowControls(!showControls);
-        if (showDetails) setShowDetails(false);
-      }}
-    >
-      <Image
-        source={{ uri: item.image_data }}
-        style={styles.image}
-        resizeMode="contain"
-      />
-    </Pressable>
-  );
+  const renderPhoto = ({ item }) => {
+    const fullImage = loadedImages[item.id];
+
+    return (
+      <Pressable
+        style={styles.photoSlide}
+        onPress={() => {
+          setShowControls(!showControls);
+          if (showDetails) setShowDetails(false);
+        }}
+      >
+        <Image
+          source={{ uri: fullImage || item.thumbnail_data }}
+          style={styles.image}
+          resizeMode="contain"
+        />
+      </Pressable>
+    );
+  };
 
   const renderThumbnail = ({ item, index }) => {
     const isActive = index === currentIndex;
@@ -131,7 +149,7 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
         ]}
       >
         <Image
-          source={{ uri: item.image_data }}
+          source={{ uri: item.thumbnail_data }}
           style={styles.thumbnail}
           resizeMode="cover"
         />
@@ -153,7 +171,7 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
               <TouchableOpacity onPress={onClose} style={styles.backButton}>
                 <Ionicons name="chevron-back" size={28} color="#fff" />
               </TouchableOpacity>
-              
+
               <View style={styles.topRightButtons}>
                 <TouchableOpacity 
                   onPress={() => setShowDetails(!showDetails)} 
@@ -165,7 +183,7 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
                     color="#fff" 
                   />
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity 
                   onPress={handleDelete} 
                   style={styles.deleteButton}
@@ -195,7 +213,7 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
                   index,
                 })}
               />
-              
+
               <View style={styles.infoBar}>
                 <Text style={styles.counter}>
                   {currentIndex + 1} of {photos.length}
@@ -225,7 +243,7 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
                 </View>
                 <Text style={styles.detailText}>{currentPhoto.descriptive}</Text>
               </View>
-              
+
               <View style={styles.detailSection}>
                 <View style={styles.detailHeader}>
                   <Ionicons name="list-outline" size={16} color="#60a5fa" />
@@ -233,7 +251,7 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
                 </View>
                 <Text style={styles.detailText}>{currentPhoto.literal}</Text>
               </View>
-              
+
               {currentPhoto.tags && (
                 <View style={styles.detailSection}>
                   <View style={styles.detailHeader}>
@@ -275,20 +293,14 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  container: { flex: 1, backgroundColor: '#000' },
   photoSlide: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  image: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-  },
+  image: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT },
   topBar: {
     position: 'absolute',
     top: 0,
@@ -303,20 +315,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     zIndex: 10,
   },
-  backButton: {
-    padding: 4,
-  },
-  topRightButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  iconButton: {
-    padding: 4,
-  },
-  deleteButton: {
-    padding: 4,
-  },
+  backButton: { padding: 4 },
+  topRightButtons: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  iconButton: { padding: 4 },
+  deleteButton: { padding: 4 },
   bottomContainer: {
     position: 'absolute',
     bottom: 0,
@@ -326,11 +328,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     zIndex: 10,
   },
-  thumbnailList: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
+  thumbnailList: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 },
   thumbnailContainer: {
     width: THUMBNAIL_SIZE,
     height: THUMBNAIL_SIZE,
@@ -340,22 +338,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  thumbnailContainerActive: {
-    borderColor: '#fff',
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  infoBar: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  counter: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  thumbnailContainerActive: { borderColor: '#fff' },
+  thumbnail: { width: '100%', height: '100%' },
+  infoBar: { alignItems: 'center', paddingVertical: 8 },
+  counter: { color: '#fff', fontSize: 13, fontWeight: '500' },
   detailsPanel: {
     position: 'absolute',
     top: 90,
@@ -367,18 +353,9 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 16,
     zIndex: 9,
   },
-  detailsScroll: {
-    padding: 16,
-  },
-  detailSection: {
-    marginBottom: 20,
-  },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
+  detailsScroll: { padding: 16 },
+  detailSection: { marginBottom: 20 },
+  detailHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   detailLabel: {
     color: '#60a5fa',
     fontSize: 13,
@@ -386,16 +363,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  detailText: {
-    color: '#e5e7eb',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  detailText: { color: '#e5e7eb', fontSize: 14, lineHeight: 20 },
+  tagsContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tag: {
     backgroundColor: 'rgba(59, 130, 246, 0.2)',
     paddingHorizontal: 10,
@@ -404,9 +373,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
   },
-  tagText: {
-    color: '#93c5fd',
-    fontSize: 12,
-    fontWeight: '500',
-  },
+  tagText: { color: '#93c5fd', fontSize: 12, fontWeight: '500' },
 });

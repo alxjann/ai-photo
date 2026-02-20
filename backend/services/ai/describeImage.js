@@ -57,7 +57,7 @@ photograph, outdoor, beach, sunset, golden-hour, ocean, people, silhouette, vaca
 
 export const describeImage = async (imageBuffer) => {
     try {
-        console.log('🤖 Sending request to AI model:', gptModel);
+        console.log('sending request to AI model:', gptModel);
         
         const response = await aiClient.path("/chat/completions").post({
             body: {
@@ -80,7 +80,7 @@ export const describeImage = async (imageBuffer) => {
             },
         });
 
-        console.log('📥 Response status:', response.status);
+        console.log('response: ', response.status);
         
         if (isUnexpected(response)) {
             console.error('Response body:', JSON.stringify(response.body, null, 2));
