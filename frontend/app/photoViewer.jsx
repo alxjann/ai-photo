@@ -21,6 +21,7 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   clamp,
+  runOnJS,
 } from 'react-native-reanimated';
 import { API_URL } from '../config/api';
 
@@ -37,30 +38,39 @@ function ZoomableImage({ uri, onSingleTap }) {
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
+  const resetZoom = () => {
+    'worklet';
+    scale.value = withTiming(1);
+    savedScale.value = 1;
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+    savedTranslateX.value = 0;
+    savedTranslateY.value = 0;
+  };
+
   const pinchGesture = Gesture.Pinch()
     .onUpdate((e) => {
+      'worklet';
       scale.value = clamp(savedScale.value * e.scale, MIN_SCALE, MAX_SCALE);
     })
     .onEnd(() => {
+      'worklet';
       savedScale.value = scale.value;
       if (scale.value < 1.05) {
-        scale.value = withTiming(1);
-        savedScale.value = 1;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
+        resetZoom();
       }
     });
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
+      'worklet';
       if (savedScale.value > 1) {
         translateX.value = savedTranslateX.value + e.translationX;
         translateY.value = savedTranslateY.value + e.translationY;
       }
     })
     .onEnd(() => {
+      'worklet';
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
     });
@@ -68,13 +78,9 @@ function ZoomableImage({ uri, onSingleTap }) {
   const doubleTapGesture = Gesture.Tap()
     .numberOfTaps(2)
     .onEnd(() => {
+      'worklet';
       if (savedScale.value > 1) {
-        scale.value = withTiming(1);
-        savedScale.value = 1;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
+        resetZoom();
       } else {
         scale.value = withTiming(2.5);
         savedScale.value = 2.5;
@@ -83,7 +89,8 @@ function ZoomableImage({ uri, onSingleTap }) {
 
   const singleTapGesture = Gesture.Tap()
     .onEnd(() => {
-      onSingleTap();
+      'worklet';
+      runOnJS(onSingleTap)();
     });
 
   const composed = Gesture.Simultaneous(
@@ -211,17 +218,16 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
     setCurrentIndex(index);
   };
 
+  const handleSingleTap = () => {
+    setShowControls(v => !v);
+    if (showDetails) setShowDetails(false);
+  };
+
   const renderPhoto = ({ item }) => {
     const imageUri = fullImages[item.id] || item.thumbnail_data;
     return (
       <View style={styles.photoSlideContainer}>
-        <ZoomableImage
-          uri={imageUri}
-          onSingleTap={() => {
-            setShowControls(v => !v);
-            if (showDetails) setShowDetails(false);
-          }}
-        />
+        <ZoomableImage uri={imageUri} onSingleTap={handleSingleTap} />
         {loadingFull && !fullImages[item.id] && (
           <ActivityIndicator style={styles.imageLoader} color="#fff" size="small" />
         )}
@@ -249,7 +255,6 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <StatusBar barStyle="light-content" />
       <GestureHandlerRootView style={styles.container}>
-
         <FlatList
           ref={flatListRef}
           data={photos}
@@ -266,8 +271,6 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
             index,
           })}
           decelerationRate="fast"
-          snapToInterval={SCREEN_WIDTH}
-          snapToAlignment="start"
         />
 
         {showControls && (

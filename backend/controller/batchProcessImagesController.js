@@ -12,7 +12,6 @@ export const batchProcessImagesController = async (req, res) => {
         const results = [];
         const errors = [];
 
-        // Process images sequentially to avoid overwhelming the AI API
         for (let i = 0; i < req.files.length; i++) {
             const file = req.files[i];
             try {
@@ -41,7 +40,6 @@ export const batchProcessImagesController = async (req, res) => {
         console.log(`   Success: ${results.length}`);
         console.log(`   Errors: ${errors.length}`);
 
-        // Return summary
         res.status(200).json({
             message: 'Batch processing complete',
             total: totalFiles,
