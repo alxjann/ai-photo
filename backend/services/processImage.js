@@ -4,12 +4,11 @@ import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 import phash from 'sharp-phash';
 
-export const processImage = async (image) => {
+export const processImage = async (image, manualDescription = null) => {
     const compressedImage = await getCompressedImageBuffer(image);
     
     console.log('Computing perceptual hash...');
     const imageHash = await phash(compressedImage);
-    console.log('Hash:', imageHash);
     
     const { data: existingPhotos } = await supabase
         .from('photo')
@@ -19,7 +18,6 @@ export const processImage = async (image) => {
         for (const photo of existingPhotos) {
             if (photo.phash) {
                 const distance = hammingDistance(imageHash, photo.phash);
-                console.log(`Comparing with ${photo.id.substring(0, 8)}: distance=${distance}`);
                 
                 if (distance < 5) {
                     console.log('DUPLICATE FOUND - perceptual hash match');
@@ -38,9 +36,15 @@ export const processImage = async (image) => {
     const descriptiveStart = description.indexOf("[DESCRIPTIVE]");
     const tagsStart = description.indexOf("[TAGS]");
     
-    const literal = description.substring(literalStart + 9, descriptiveStart).trim();
-    const descriptive = description.substring(descriptiveStart + 13, tagsStart).trim();
+    let literal = description.substring(literalStart + 9, descriptiveStart).trim();
+    let descriptive = description.substring(descriptiveStart + 13, tagsStart).trim();
     const tags = description.substring(tagsStart + 6).trim().toLowerCase();
+    
+    if (manualDescription && manualDescription.trim()) {
+        const userNote = manualDescription.trim();
+        descriptive = `${descriptive} User note: ${userNote}`;
+        console.log('Added manual description:', userNote);
+    }
     
     const descriptiveEmbedding = await generateEmbedding(descriptive);
     const literalEmbedding = await generateEmbedding(literal);
@@ -60,6 +64,7 @@ export const processImage = async (image) => {
             literal: literal,
             tags: tags,
             phash: imageHash,
+            manual_description: manualDescription?.trim() || null,
             descriptive_embedding: descriptiveEmbedding,
             literal_embedding: literalEmbedding
         })

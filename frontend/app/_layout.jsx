@@ -6,7 +6,6 @@ import '../global.css';
 export default function RootLayout() {
   const insets = useSafeAreaInsets();
 
-
   return (
     <Tabs
       screenOptions={{
@@ -30,20 +29,35 @@ export default function RootLayout() {
       }}
     >
       <Tabs.Screen 
-        name="test" 
+        name="index" 
         options={{ 
-          title: 'Test',
-          tabBarLabel: 'Test',
+          title: 'Gallery',
+          tabBarLabel: 'Gallery',
           tabBarIcon: ({ color, focused, size }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color} />
           ),
         }} 
       />
       <Tabs.Screen 
-        name="albums" 
+        name="upload" 
         options={{ 
-          title: 'Albums',
-          tabBarLabel: 'Albums',
+          title: 'Upload',
+          tabBarLabel: 'Upload',
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? 'cloud-upload' : 'cloud-upload-outline'} size={size} color={color} />
+          ),
+        }} 
+      />
+      <Tabs.Screen 
+        name="test" 
+        options={{ 
+          href: null,
+        }} 
+      />
+      <Tabs.Screen 
+        name="gallery" 
+        options={{ 
+          href: null,
         }} 
       />
     </Tabs>

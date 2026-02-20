@@ -6,7 +6,9 @@ export const processImageController = async (req, res) => {
             return res.status(400).json({ error: 'No image file provided' });
         }
 
-        const result = await processImage(req.file.buffer);
+        const manualDescription = req.body.manualDescription || null;
+        
+        const result = await processImage(req.file.buffer, manualDescription);
         
         res.status(200).json({
             message: 'Image processed successfully',

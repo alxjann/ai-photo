@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { API_URL } from '../config/api';
+import PhotoViewer from './photoViewer';
 
 const { width } = Dimensions.get('window');
 const numColumns = 3;
@@ -25,6 +26,8 @@ export default function GalleryScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [searchMode, setSearchMode] = useState('balanced');
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
   useEffect(() => {
     loadAllPhotos();
@@ -66,56 +69,41 @@ export default function GalleryScreen() {
     }
   };
 
-const handleSearch = async () => {
+  const handleSearch = async () => {
     if (!searchQuery.trim()) {
-        loadAllPhotos();
-        return;
+      loadAllPhotos();
+      return;
     }
 
     setSearching(true);
     try {
-        const weights = getSearchWeights();
-        
-        console.log('=== FRONTEND SEARCH ===');
-        console.log('Query:', searchQuery);
-        console.log('Mode:', searchMode);
-        console.log('Weights:', weights);
-        
-        const response = await fetch(`${API_URL}/api/search`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                query: searchQuery,
-                ...weights
-            }),
-        });
+      const weights = getSearchWeights();
+      
+      const response = await fetch(`${API_URL}/api/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: searchQuery,
+          ...weights
+        }),
+      });
 
-        const data = await response.json();
-        
-        console.log('Results received:', data.count);
-        if (data.results && data.results.length > 0) {
-            console.log('Top 3 scores:', data.results.slice(0, 3).map(r => ({
-                fts: r.fts_rank?.toFixed(4),
-                semantic: r.semantic_rank?.toFixed(4),
-                final: r.final_score?.toFixed(4)
-            })));
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPhotos(data.results || []);
+        if (data.count === 0) {
+          Alert.alert('No Results', 'No photos match your search');
         }
-        console.log('======================');
-        
-        if (response.ok) {
-            setPhotos(data.results || []);
-            if (data.count === 0) {
-                Alert.alert('No Results', 'No photos match your search');
-            }
-        } else {
-            throw new Error(data.error || 'Search failed');
-        }
+      } else {
+        throw new Error(data.error || 'Search failed');
+      }
     } catch (error) {
-        Alert.alert('Error', `Search failed: ${error.message}`);
+      Alert.alert('Error', `Search failed: ${error.message}`);
     } finally {
-        setSearching(false);
+      setSearching(false);
     }
-};
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -128,8 +116,21 @@ const handleSearch = async () => {
     loadAllPhotos();
   };
 
-  const renderPhoto = ({ item }) => (
-    <View style={styles.photoContainer}>
+  const handlePhotoPress = (index) => {
+    setSelectedPhotoIndex(index);
+    setViewerVisible(true);
+  };
+
+  const handlePhotoDeleted = (deletedId) => {
+    setPhotos(photos.filter(p => p.id !== deletedId));
+  };
+
+  const renderPhoto = ({ item, index }) => (
+    <TouchableOpacity 
+      style={styles.photoContainer}
+      onPress={() => handlePhotoPress(index)}
+      activeOpacity={0.8}
+    >
       {item.image_data ? (
         <Image
           source={{ uri: item.image_data }}
@@ -144,11 +145,11 @@ const handleSearch = async () => {
       {item.final_score && (
         <View style={styles.scoreBadge}>
           <Text style={styles.scoreText}>
-            K:{Math.round(item.fts_rank * 100)} S:{Math.round(item.semantic_rank * 100)}
+            {Math.round(item.final_score * 100)}
           </Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -254,6 +255,14 @@ const handleSearch = async () => {
           }
         />
       )}
+
+      <PhotoViewer
+        visible={viewerVisible}
+        photos={photos}
+        initialIndex={selectedPhotoIndex}
+        onClose={() => setViewerVisible(false)}
+        onPhotoDeleted={handlePhotoDeleted}
+      />
     </View>
   );
 }
