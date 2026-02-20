@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,81 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
-  Image,
+  Pressable,
   Dimensions,
+  useColorScheme,
 } from 'react-native';
+import { Image } from 'expo-image';
+import { useNavigation } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../config/api';
 import PhotoViewer from './photoViewer';
 
 const { width } = Dimensions.get('window');
-const numColumns = 3;
-const imageSize = width / numColumns;
+const numColumns = 4;
+const imageSize = (width - 6) / numColumns;
 
 export default function GalleryScreen() {
+  const navigation = useNavigation();
+  const colorScheme = useColorScheme();
+  const dark = colorScheme === 'dark';
+
+  const theme = {
+    background: dark ? '#000' : '#fff',
+    header: dark ? '#1c1c1e' : '#f5f5f7',
+    card: dark ? '#2c2c2e' : '#f3f4f6',
+    text: dark ? '#fff' : '#000',
+    subtext: dark ? '#9ca3af' : '#6b7280',
+    input: dark ? '#2c2c2e' : '#e5e7eb',
+    searchBg: dark ? '#1c1c1e' : '#f5f5f7',
+    iconColor: dark ? '#fff' : '#000',
+    border: dark ? '#2c2c2e' : '#e5e7eb',
+  };
+
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchVisible, setSearchVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerStyle: {
+        backgroundColor: theme.header,
+      },
+      headerTintColor: theme.text,
+      headerTitle: 'Gallery',
+      headerTitleAlign: 'left',
+      headerTitleStyle: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginLeft: 0,
+        marginTop: 12,
+        color: theme.text,
+      },
+      headerRight: () => (
+        <Pressable
+          onPress={() => {
+            setSearchVisible(v => !v);
+            if (searchVisible) {
+              setSearchQuery('');
+              loadAllPhotos();
+            }
+          }}
+          style={{ marginRight: 16 }}
+        >
+          <Ionicons
+            name={searchVisible ? 'close' : 'search'}
+            size={24}
+            color={theme.iconColor}
+          />
+        </Pressable>
+      ),
+    });
+  }, [navigation, searchVisible, dark]);
 
   useEffect(() => {
     loadAllPhotos();
@@ -97,11 +154,6 @@ export default function GalleryScreen() {
     loadAllPhotos();
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    loadAllPhotos();
-  };
-
   const handlePhotoPress = (index) => {
     setSelectedPhotoIndex(index);
     setViewerVisible(true);
@@ -111,21 +163,21 @@ export default function GalleryScreen() {
     setPhotos(photos.filter(p => p.id !== deletedId));
   };
 
-  const renderPhoto = ({ item, index }) => (
+  const renderPhoto = useCallback(({ item, index }) => (
     <TouchableOpacity
-      style={styles.photoContainer}
       onPress={() => handlePhotoPress(index)}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
+      style={styles.photoContainer}
     >
       {item.thumbnail_data ? (
         <Image
           source={{ uri: item.thumbnail_data }}
-          style={styles.photoImage}
-          resizeMode="cover"
+          style={[styles.photoImage, { backgroundColor: theme.card }]}
+          contentFit="cover"
         />
       ) : (
-        <View style={[styles.photoImage, styles.placeholderImage]}>
-          <Text style={styles.placeholderText}>No Image</Text>
+        <View style={[styles.photoImage, styles.placeholderImage, { backgroundColor: theme.card }]}>
+          <Ionicons name="image-outline" size={20} color="#9ca3af" />
         </View>
       )}
       {item.final_score && (
@@ -136,72 +188,60 @@ export default function GalleryScreen() {
         </View>
       )}
     </TouchableOpacity>
-  );
+  ), [photos, dark]);
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.title}>Gallery</Text>
-            <Text style={styles.subtitle}>
-              {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
-            </Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {searchVisible && (
+        <View style={[styles.searchContainer, { backgroundColor: theme.searchBg }]}>
+          <View style={[styles.searchInputWrapper, { backgroundColor: theme.input }]}>
+            <Ionicons name="search" size={16} color="#9ca3af" style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: theme.text }]}
+              placeholder="Search photos..."
+              placeholderTextColor="#9ca3af"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              autoFocus
+              returnKeyType="search"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => { setSearchQuery(''); loadAllPhotos(); }}>
+                <Ionicons name="close-circle" size={18} color="#9ca3af" />
+              </Pressable>
+            )}
           </View>
           <TouchableOpacity
-            onPress={handleRefresh}
-            disabled={loading || refreshing}
-            style={styles.refreshButton}
+            onPress={handleSearch}
+            disabled={searching}
+            style={styles.searchButton}
           >
-            {refreshing ? (
-              <ActivityIndicator color="#007AFF" size="small" />
+            {searching ? (
+              <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.refreshIcon}>Refresh</Text>
+              <Text style={styles.searchButtonText}>Search</Text>
             )}
           </TouchableOpacity>
         </View>
-      </View>
+      )}
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search photos..."
-          placeholderTextColor="#9ca3af"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={handleSearch}
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity
-            onPress={handleClearSearch}
-            style={styles.clearButton}
-          >
-            <Text style={styles.clearButtonText}>X</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          onPress={handleSearch}
-          disabled={searching}
-          style={styles.searchButton}
-        >
-          {searching ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.searchButtonText}>Search</Text>
-          )}
-        </TouchableOpacity>
+      <View style={[styles.countBar, { backgroundColor: theme.background }]}>
+        <Text style={[styles.countText, { color: theme.subtext }]}>
+          {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
+        </Text>
       </View>
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading photos...</Text>
+          <Text style={[styles.loadingText, { color: theme.subtext }]}>Loading photos...</Text>
         </View>
       ) : photos.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>No Photos</Text>
-          <Text style={styles.emptyText}>No photos yet</Text>
-          <Text style={styles.emptySubtext}>
+          <Ionicons name="images-outline" size={48} color="#9ca3af" />
+          <Text style={[styles.emptyText, { color: theme.text }]}>No photos yet</Text>
+          <Text style={[styles.emptySubtext, { color: theme.subtext }]}>
             Upload some photos to get started
           </Text>
         </View>
@@ -213,6 +253,7 @@ export default function GalleryScreen() {
           numColumns={numColumns}
           key={numColumns}
           contentContainerStyle={styles.gridContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -238,85 +279,49 @@ export default function GalleryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1f2937',
-  },
-  header: {
-    padding: 16,
-    paddingTop: 20,
-    backgroundColor: '#374151',
-    borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 4,
-  },
-  refreshButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4b5563',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  refreshIcon: {
-    fontSize: 12,
-    color: '#fff',
   },
   searchContainer: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#374151',
-    borderBottomWidth: 1,
-    borderBottomColor: '#4b5563',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     gap: 8,
+    alignItems: 'center',
+  },
+  searchInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 36,
+    gap: 6,
+  },
+  searchIcon: {
+    marginRight: 2,
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#4b5563',
-    borderRadius: 8,
-    paddingHorizontal: 12,
     fontSize: 14,
-    backgroundColor: '#1f2937',
-    color: '#fff',
-  },
-  clearButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#4b5563',
-    borderRadius: 8,
-  },
-  clearButtonText: {
-    fontSize: 18,
-    color: '#9ca3af',
+    height: '100%',
   },
   searchButton: {
-    width: 80,
-    height: 40,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchButtonText: {
-    fontSize: 14,
     color: '#fff',
+    fontSize: 14,
     fontWeight: '600',
+  },
+  countBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  countText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   loadingContainer: {
     flex: 1,
@@ -325,54 +330,41 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#9ca3af',
     fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+    gap: 8,
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#9ca3af',
-    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6b7280',
   },
   gridContent: {
     paddingBottom: 20,
   },
   photoContainer: {
     position: 'relative',
+    margin: 0.5,
   },
   photoImage: {
     width: imageSize,
     height: imageSize,
-    backgroundColor: '#374151',
   },
   placeholderImage: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  placeholderText: {
-    fontSize: 12,
-    opacity: 0.3,
-    color: '#fff',
-  },
   scoreBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    backgroundColor: 'rgba(0, 122, 255, 0.85)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
