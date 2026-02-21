@@ -15,7 +15,7 @@ const convertHeicImage = async (image) => {
 export const getCompressedImageBuffer = async (imageBuffer) => {
   let bufferToProcess = imageBuffer;
 
-  const isHeic = imageBuffer.slice(4, 12).toString().includes("ftypheic");
+  const isHeic = bufferToProcess.slice(4, 12).toString().includes("ftypheic");
 
   if (isHeic)
 	bufferToProcess = await convertHeicImage(imageBuffer)
@@ -30,7 +30,7 @@ export const getCompressedImageBuffer = async (imageBuffer) => {
 export const getThumbnailBuffer = async (imageBuffer) => {
 	let bufferToProcess = imageBuffer;
 
-	const isHeic = imageBuffer.slice(4, 12).toString().includes("ftypheic");
+	const isHeic = bufferToProcess.slice(4, 12).toString().includes("ftypheic");
 
 	if (isHeic)
 		bufferToProcess = await convertHeicImage(imageBuffer)

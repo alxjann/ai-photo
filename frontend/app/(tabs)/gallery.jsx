@@ -18,6 +18,7 @@ import { useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../../config/api.js';
 import PhotoViewer from '../../components/photoViewer.jsx';
+import { getSession } from '../../service/auth/authService.js';
 
 const { width } = Dimensions.get('window');
 const numColumns = 4;
@@ -90,11 +91,15 @@ export default function GalleryScreen() {
   }, []);
 
   const loadAllPhotos = async () => {
+    const token = await getSession();
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/search`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ query: '' }),
       });
 

@@ -1,6 +1,6 @@
 import { processImage } from './processImage.js';
 
-export const batchProcessImages = async (files) => {
+export const batchProcessImages = async (user, files) => {
     if (!files || files.length === 0) 
         throw new Error('No image files provided');
     
@@ -16,7 +16,7 @@ export const batchProcessImages = async (files) => {
         const file = files[i];
         try {
             console.log(`\nProcessing image ${i + 1}/${totalFiles}...`);
-            const result = await processImage(file.buffer);
+            const result = await processImage(user, file.buffer);
             results.push({
                 index: i,
                 photo: result

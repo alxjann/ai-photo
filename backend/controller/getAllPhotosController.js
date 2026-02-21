@@ -1,8 +1,15 @@
 import { getAllPhotos } from "../services/getAllPhotos.js";
+import { getClientAuthToken } from "../utils/getClientAuthToken.js";
 
 export const getAllPhotosController = async (req, res) => {
     try {
-        const result = await getAllPhotos();
+        const supabase = getClientAuthToken(req, res);
+
+        if (!supabase) return;
+
+        const { data: {user} } = await supabase.auth.getUser();
+
+        const result = await getAllPhotos(user, supabase);
         res.status(200).json({
             count: result.length,
             result
