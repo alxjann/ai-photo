@@ -1,10 +1,11 @@
-import { supabase } from '../config/supabase.js';
 import { getCompressedImageBuffer, getThumbnailBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 import phash from 'sharp-phash';
 
-export const processImage = async (image, manualDescription = null) => {
+export const processImage = async (user, supabase, image, manualDescription = null) => {
+    const start = Date.now();
+    if (!user || !user.id) throw new Error('Invalid user object or missing user.id');
     const compressedImage = await getCompressedImageBuffer(image);
     const thumbnailBuffer = await getThumbnailBuffer(image);
 
@@ -54,6 +55,7 @@ export const processImage = async (image, manualDescription = null) => {
     const { data: insertData, error: insertError } = await supabase
         .from('photo')
         .insert({
+            user_id: user.id,
             image_data: base64Image,
             thumbnail_data: base64Thumbnail,
             descriptive,
@@ -68,6 +70,9 @@ export const processImage = async (image, manualDescription = null) => {
         .single();
 
     if (insertError) throw insertError;
+
+    const duration = Date.now() - start;
+    console.log(`processImage: completed in ${duration}ms`);
 
     return insertData;
 };

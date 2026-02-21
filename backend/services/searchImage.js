@@ -1,12 +1,12 @@
-import { supabase } from '../config/supabase.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 
-export const searchImage = async (query) => {
+export const searchImage = async (user, supabase, query) => {
     if (!query || query.trim() === '') {
         // No query, return all images WITH image_data
         const { data, error } = await supabase
             .from('photo')
-            .select('id, image_data, descriptive, literal, created_at')
+            .select('id, thumbnail_data, descriptive, literal, created_at')
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

@@ -1,11 +1,18 @@
 import { batchProcessImages } from '../services/batchProcessImages.js';
+import { getClientAuthToken } from '../utils/getClientAuthToken.js';
 
 export const batchProcessImagesController = async(req, res) => {
     try {
+        const supabase = getClientAuthToken(req, res);
+
+        if (!supabase) return;
+
+        const { data: {user} } = await supabase.auth.getUser();
+
         if (!req.files || req.files.length === 0) 
             return res.status(400).json({ error: 'No image files provided' });
         
-        const { results, errors } = await batchProcessImages(req.files);
+        const { results, errors } = await batchProcessImages(user, req.files);
 
         res.status(200).json({
             message: 'Batch processing complete',

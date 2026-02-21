@@ -16,6 +16,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../../config/api.js';
+import { getSession } from '../../service/auth/authService.js';
 
 export default function UploadScreen() {
   const colorScheme = useColorScheme();
@@ -86,6 +87,12 @@ export default function UploadScreen() {
       return;
     }
 
+    const token = await getSession();
+    if (!token) {
+      Alert.alert('Error', 'User is not logged in')
+      return
+    }
+
     setUploading(true);
     setResult(null);
     setCurrentProgress({ current: 0, total: images.length });
@@ -113,7 +120,10 @@ export default function UploadScreen() {
         const response = await fetch(`${API_URL}/api/image`, {
           method: 'POST',
           body: formData,
-          headers: { 'Content-Type': 'multipart/form-data' },
+          headers: { 
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}` 
+          },
         });
 
         const data = await response.json();
