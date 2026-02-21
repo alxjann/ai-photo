@@ -3,12 +3,12 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import embed from './routes/embed.js';
 import image from './routes/image.js';
-import search from './routes/search.js'; // ADD THIS LINE
+import search from './routes/search.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
 // middleware
 app.use(cors());
@@ -17,7 +17,7 @@ app.use(express.json());
 // routes
 app.use('/api', embed);
 app.use('/api', image);
-app.use('/api', search); // ADD THIS LINE
+app.use('/api', search);
 
 app.get('/', (req, res) => {
   res.json({ message: 'AI Photo Gallery API is running!' });

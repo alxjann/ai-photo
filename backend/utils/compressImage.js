@@ -20,3 +20,12 @@ export const getCompressedImageBuffer = async (imageBuffer) => {
     .toBuffer();
   return final;
 };
+
+export const getThumbnailBuffer = async (image) => {
+    const buffer = await sharp(image)
+        .resize({ width: 300, height: 300, fit: 'cover' })
+        .jpeg({ quality: 60 })
+        .toBuffer();
+
+    return buffer;
+};

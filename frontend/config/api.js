@@ -10,3 +10,5 @@ const getApiUrl = () => {
 };
 
 export const API_URL = getApiUrl();
+
+//export const API_URL = "https://ai-photo-production.up.railway.app";

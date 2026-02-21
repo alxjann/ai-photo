@@ -1,59 +1,81 @@
 import { supabase } from '../config/supabase.js';
-import { getCompressedImageBuffer } from '../utils/compressImage.js';
+import { getCompressedImageBuffer, getThumbnailBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
+import phash from 'sharp-phash';
 
-export const processImage = async (image) => {
-    // 1. Compress image
+export const processImage = async (image, manualDescription = null) => {
     const compressedImage = await getCompressedImageBuffer(image);
-    
-    // 2. Convert to base64 for database storage
+    const thumbnailBuffer = await getThumbnailBuffer(image);
+
+    const imageHash = await phash(compressedImage);
+
+    const { data: existingPhotos } = await supabase
+        .from('photo')
+        .select('id, phash');
+
+    if (existingPhotos) {
+        for (const photo of existingPhotos) {
+            if (photo.phash) {
+                const distance = hammingDistance(imageHash, photo.phash);
+                if (distance < 10) {
+                    throw new Error(`Duplicate image detected (perceptual hash distance: ${distance})`);
+                }
+            }
+        }
+    }
+
     const base64Image = `data:image/jpeg;base64,${compressedImage.toString('base64')}`;
-    console.log('img converted to base64 (size:', Math.round(base64Image.length / 1024), 'KB)');
-    
-    // 3. Get AI description
+    const base64Thumbnail = `data:image/jpeg;base64,${thumbnailBuffer.toString('base64')}`;
     const description = await describeImage(compressedImage);
-    const start = description.indexOf("[DESCRIPTIVE]");
-    const descriptive = description.substring(start + 13).trim();
-    const literal = description.substring(description.indexOf("[LITERAL]") + 9, start).trim();
-    
-    console.log('Descriptive:', descriptive);
-    console.log('Literal:', literal);
-    
-    // 4. Generate embeddings
-    console.log('Generating embeddings...');
+
+    const literalStart = description.indexOf('[LITERAL]');
+    const descriptiveStart = description.indexOf('[DESCRIPTIVE]');
+    const tagsStart = description.indexOf('[TAGS]');
+
+    let literal = description.substring(literalStart + 9, descriptiveStart).trim();
+    let descriptive = description.substring(descriptiveStart + 13, tagsStart).trim();
+    const tags = description.substring(tagsStart + 6).trim().toLowerCase();
+
+    if (manualDescription && manualDescription.trim()) {
+        descriptive = `${descriptive} User note: ${manualDescription.trim()}`;
+    }
+
     const descriptiveEmbedding = await generateEmbedding(descriptive);
     const literalEmbedding = await generateEmbedding(literal);
-    
-    // 5. Validate embeddings
-    if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) 
+
+    if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) {
         throw new Error(`Invalid descriptive embedding dimension: ${descriptiveEmbedding?.length}`);
-    
-    if (!literalEmbedding || literalEmbedding.length !== 1536) 
+    }
+    if (!literalEmbedding || literalEmbedding.length !== 1536) {
         throw new Error(`Invalid literal embedding dimension: ${literalEmbedding?.length}`);
-    
-    
-    console.log('Embeddings generated (1536 dimensions each)');
-    
-    // 6. Insert into database with base64 image
+    }
+
     const { data: insertData, error: insertError } = await supabase
-        .from("photo")
+        .from('photo')
         .insert({
-            image_data: base64Image,  // Store base64 image
-            descriptive: descriptive,
-            literal: literal,
+            image_data: base64Image,
+            thumbnail_data: base64Thumbnail,
+            descriptive,
+            literal,
+            tags,
+            phash: imageHash,
+            manual_description: manualDescription?.trim() || null,
             descriptive_embedding: descriptiveEmbedding,
-            literal_embedding: literalEmbedding
+            literal_embedding: literalEmbedding,
         })
         .select()
         .single();
 
-    if (insertError) {
-        console.error('Database error:', insertError);
-        throw insertError;
-    }
+    if (insertError) throw insertError;
 
-    console.log('Image processed and stored successfully');
-    
     return insertData;
 };
+
+function hammingDistance(hash1, hash2) {
+    let distance = 0;
+    for (let i = 0; i < hash1.length; i++) {
+        if (hash1[i] !== hash2[i]) distance++;
+    }
+    return distance;
+}
