@@ -1,25 +1,16 @@
-import { supabase } from '../config/supabase.js';
+import { getAllPhotos } from "../services/getAllPhotos.js";
 
 export const getAllPhotosController = async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('photo')
-            .select('id, thumbnail_data, descriptive, literal, tags, created_at')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
+        const result = await getAllPhotos();
         res.status(200).json({
-            success: true,
-            count: data?.length || 0,
-            results: data || [],
+            count: result.length,
+            result
         });
-
     } catch (error) {
-        res.status(500).json({ 
-            success: false,
+        res.status(500).json({
             error: 'Failed to fetch photos',
-            details: error.message 
+            details: error.message,
         });
     }
 };

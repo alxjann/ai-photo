@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { API_URL } from '../config/api';
+import { API_URL } from '../../config/api.js';
 
 export default function UploadScreen() {
   const colorScheme = useColorScheme();

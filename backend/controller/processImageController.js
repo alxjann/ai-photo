@@ -11,18 +11,12 @@ export const processImageController = async (req, res) => {
         const result = await processImage(req.file.buffer, manualDescription);
         
         res.status(200).json({
-            message: 'Image processed successfully',
-            ...result
+            message: 'image processed successfully',
+            photo: result
         });
 
     } catch (error) {
         console.error('error:', error);
-        
-        const statusCode = error.message.includes('Duplicate') ? 409 : 500;
-        
-        res.status(statusCode).json({ 
-            error: error.message,
-            details: error.message
-        });
+        res.status(500).json({ error: 'failed to process image' });
     }
 };

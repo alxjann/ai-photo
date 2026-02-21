@@ -9,4 +9,6 @@ const getApiUrl = () => {
   return 'http://localhost:3000';
 };
 
-export const API_URL = 'https://ai-photo-production.up.railway.app';
+export const API_URL = getApiUrl();
+
+//export const API_URL = "https://ai-photo-production.up.railway.app";

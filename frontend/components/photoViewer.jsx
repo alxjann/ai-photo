@@ -23,7 +23,7 @@ import Animated, {
   clamp,
   runOnJS,
 } from 'react-native-reanimated';
-import { API_URL } from '../config/api';
+import { API_URL } from '../config/api.js';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const THUMBNAIL_SIZE = 60;

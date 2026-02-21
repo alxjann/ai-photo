@@ -1,5 +1,5 @@
 import express from 'express';
-import { searchImagesController } from '../controller/searchController.js';
+import { searchImagesController } from '../controller/searchImageController.js';
 import { getAllPhotosController } from '../controller/getAllPhotosController.js';
 
 const router = express.Router();

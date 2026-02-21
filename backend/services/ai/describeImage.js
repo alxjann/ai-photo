@@ -56,52 +56,42 @@ photograph, outdoor, beach, sunset, golden-hour, ocean, people, silhouette, vaca
 `;
 
 export const describeImage = async (imageBuffer) => {
-    try {
-        console.log('sending request to AI model:', gptModel);
-        
-        const response = await aiClient.path("/chat/completions").post({
-            body: {
-                model: gptModel,
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: IMAGE_PROMPT },
-                            {
-                                type: "image_url",
-                                image_url: {
-                                    url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`,
-                                    detail: "auto",
-                                },
+    console.log('sending request to AI model:', gptModel);
+    
+    const response = await aiClient.path("/chat/completions").post({
+        body: {
+            model: gptModel,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: IMAGE_PROMPT },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`,
+                                detail: "auto",
                             },
-                        ],
-                    },
-                ],
-            },
-        });
+                        },
+                    ],
+                },
+            ],
+        },
+    });
 
-        console.log('response: ', response.status);
-        
-        if (isUnexpected(response)) {
-            console.error('Response body:', JSON.stringify(response.body, null, 2));
-            throw new Error(response.body.error?.message || 'AI request failed');
-        }
-
-        if (!response.body || !response.body.choices || !response.body.choices[0]) {
-            throw new Error('invalid ai response structure');
-        }
-
-        const content = response.body.choices[0].message.content;
-        console.log('ai content received (length):', content?.length);
-        
-        return content;
-    } catch (error) {
-        console.error('describeImage:', error);
-        console.error('erordetails:', {
-            message: error.message,
-            name: error.name,
-            stack: error.stack
-        });
-        throw error;
+    console.log('response: ', response.status);
+    
+    if (isUnexpected(response)) {
+        console.error('Response body:', JSON.stringify(response.body, null, 2));
+        throw new Error(response.body.error?.message || 'AI request failed');
     }
+
+    if (!response.body || !response.body.choices || !response.body.choices[0]) {
+        throw new Error('invalid ai response structure');
+    }
+
+    const content = response.body.choices[0].message.content;
+    console.log('ai content received (length):', content?.length);
+    
+    return content;
 };
