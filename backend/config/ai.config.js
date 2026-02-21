@@ -8,3 +8,5 @@ const endpoint = "https://models.github.ai/inference";
 const GPT_TOKEN = process.env.GPT_TOKEN;
 
 export const aiClient = ModelClient(endpoint, new AzureKeyCredential(GPT_TOKEN));
+console.log('GPT_TOKEN exists:', !!process.env.GPT_TOKEN);
+console.log('GPT_TOKEN length:', process.env.GPT_TOKEN?.length);
