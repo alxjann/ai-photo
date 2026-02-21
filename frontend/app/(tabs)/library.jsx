@@ -7,7 +7,7 @@ import { Image } from 'expo-image';
 
 const numColumns = 4;
 
-export default function test() {
+export default function Library() {
   const navigation = useNavigation();
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({mediaTypes: 'photo'});
   const [photos, setPhotos] = useState([]);

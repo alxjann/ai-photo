@@ -11,7 +11,7 @@ import {
   FlatList,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { API_URL } from '../config/api';
+import { API_URL } from '../../config/api';
 
 export default function UploadScreen() {
   const [images, setImages] = useState([]);

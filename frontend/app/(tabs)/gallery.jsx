@@ -12,7 +12,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { API_URL } from '../config/api';
+import { API_URL } from '../../config/api';
 
 const { width } = Dimensions.get('window');
 const numColumns = 3; // but we can change later if we want
