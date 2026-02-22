@@ -1,7 +1,7 @@
 import { isUnexpected } from "@azure-rest/ai-inference";
 import { aiClient } from "../../config/ai.config.js";
 
-const gptModel = "gpt-4o-mini";
+const gptModel = "gpt-4o";
 
 const IMAGE_PROMPT = `You are an expert image analysis assistant with deep knowledge of games, anime, films, landmarks, nature, and pop culture.
 
