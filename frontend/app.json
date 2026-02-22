@@ -45,7 +45,8 @@
           "photosPermission": "Allow ai-photo to access your photos.",
           "savePhotosPermission": "Allow ai-photo to save photos."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},

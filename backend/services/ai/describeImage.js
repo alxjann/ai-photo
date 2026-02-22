@@ -1,4 +1,7 @@
-import { openai } from '../../config/ai.config.js';
+import { isUnexpected } from "@azure-rest/ai-inference";
+import { aiClient } from "../../config/ai.config.js";
+
+const gptModel = "gpt-4o";
 
 const IMAGE_PROMPT = `You are an expert image analysis assistant with deep knowledge of games, anime, films, landmarks, nature, and pop culture.
 
@@ -38,27 +41,33 @@ TAG CATEGORIES (include all relevant ones):
 - Filipino context: philippines, manila, filipino-food, jeepney, festival`;
 
 export const describeImage = async (imageBuffer) => {
-    const response = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-            {
-                role: 'user',
-                content: [
-                    { type: 'text', text: IMAGE_PROMPT },
-                    {
-                        type: 'image_url',
-                        image_url: {
-                            url: `data:image/jpeg;base64,${imageBuffer.toString('base64')}`,
-                            detail: 'high',
+    const response = await aiClient.path("/chat/completions").post({
+        body: {
+            model: gptModel,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        { type: "text", text: IMAGE_PROMPT },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`,
+                                detail: "high",
+                            },
                         },
-                    },
-                ],
-            },
-        ],
-        max_tokens: 1000,
+                    ],
+                },
+            ],
+            max_tokens: 1000,
+        },
     });
 
-    const content = response.choices[0].message.content;
+    if (isUnexpected(response)) {
+        throw new Error(response.body.error?.message || 'AI request failed');
+    }
+
+    const content = response.body.choices[0].message.content;
     if (!content) throw new Error('Empty response from AI');
     return content;
 };

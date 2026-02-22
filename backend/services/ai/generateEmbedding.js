@@ -1,11 +1,19 @@
-import { openai } from '../../config/ai.config.js';
+import { isUnexpected } from "@azure-rest/ai-inference";
+import { aiClient } from "../../config/ai.config.js";
+
+const embeddingModel = "openai/text-embedding-3-small";
 
 export const generateEmbedding = async (text) => {
-    const response = await openai.embeddings.create({
-        model: 'text-embedding-3-large',
-        input: text,
-        dimensions: 1536,
+    const response = await aiClient.path("/embeddings").post({
+        body: {
+            input: [text],
+            model: embeddingModel,
+        },
     });
 
-    return response.data[0].embedding;
+    if (isUnexpected(response)) {
+        throw response.body.error;
+    }
+
+    return response.body.data[0].embedding;
 };
