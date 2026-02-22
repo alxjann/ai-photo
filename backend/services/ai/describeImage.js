@@ -75,8 +75,6 @@ photograph, food, sinigang, filipino-food, soup, pork, tamarind, indoor, home, m
 `;
 
 export const describeImage = async (imageBuffer) => {
-    console.log('sending request to AI model:', gptModel);
-    
     const response = await aiClient.path("/chat/completions").post({
         body: {
             model: gptModel,
@@ -89,28 +87,21 @@ export const describeImage = async (imageBuffer) => {
                             type: "image_url",
                             image_url: {
                                 url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`,
-                                detail: "auto",
+                                detail: "high",
                             },
                         },
                     ],
                 },
             ],
+            max_tokens: 1000,
         },
     });
 
-    console.log('response: ', response.status);
-    
     if (isUnexpected(response)) {
-        console.error('Response body:', JSON.stringify(response.body, null, 2));
         throw new Error(response.body.error?.message || 'AI request failed');
     }
 
-    if (!response.body || !response.body.choices || !response.body.choices[0]) {
-        throw new Error('invalid ai response structure');
-    }
-
     const content = response.body.choices[0].message.content;
-    console.log('ai content received (length):', content?.length);
-    
+    if (!content) throw new Error('Empty response from AI');
     return content;
 };

@@ -1,10 +1,8 @@
-import ModelClient from "@azure-rest/ai-inference";
-import { AzureKeyCredential } from "@azure/core-auth";
-import dotenv from "dotenv";
+import OpenAI from 'openai';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
-const endpoint = "https://models.github.ai/inference";
-const GPT_TOKEN = process.env.GPT_TOKEN;
-
-export const aiClient = ModelClient(endpoint, new AzureKeyCredential(GPT_TOKEN));
+export const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
