@@ -106,7 +106,7 @@ export default function GalleryScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        setPhotos(data.result || []);
+        setPhotos(data.results || []);
       } else {
         throw new Error(data.error || 'Failed to load photos');
       }
@@ -118,40 +118,45 @@ export default function GalleryScreen() {
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      loadAllPhotos();
+const handleSearch = async () => {
+  if (!searchQuery.trim()) {
+    loadAllPhotos();
+    return;
+  }
+
+  setSearching(true);
+  try {
+    const token = await getSession();
+    if (!token) {
+      Alert.alert('Error', 'Not logged in');
       return;
     }
 
-    setSearching(true);
-    try {
-      const response = await fetch(`${API_URL}/api/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: searchQuery,
-          fullTextWeight: 0.5,
-          semanticWeight: 2.0,
-        }),
-      });
+    const response = await fetch(`${API_URL}/api/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ query: searchQuery }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        setPhotos(data.results || []);
-        if (data.count === 0) {
-          Alert.alert('No Results', 'No photos match your search');
-        }
-      } else {
-        throw new Error(data.error || 'Search failed');
+    if (response.ok) {
+      setPhotos(data.results || []);
+      if ((data.results || []).length === 0) {
+        Alert.alert('No Results', 'No photos match your search');
       }
-    } catch (error) {
-      Alert.alert('Error', `Search failed: ${error.message}`);
-    } finally {
-      setSearching(false);
+    } else {
+      throw new Error(data.error || 'Search failed');
     }
-  };
+  } catch (error) {
+    Alert.alert('Error', `Search failed: ${error.message}`);
+  } finally {
+    setSearching(false);
+  }
+};
 
   const handleRefresh = () => {
     setRefreshing(true);

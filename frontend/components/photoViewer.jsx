@@ -23,8 +23,8 @@ import Animated, {
   clamp,
   runOnJS,
 } from 'react-native-reanimated';
-import { API_URL } from '../config/api.js';
-import { getSession } from '../service/auth/authService.js';
+import { API_URL } from '../config/api';
+import { getSession } from '../service/auth/authService';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const THUMBNAIL_SIZE = 60;
@@ -139,7 +139,10 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
     if (!photo || fullImages[photo.id]) return;
     setLoadingFull(true);
     try {
-      const response = await fetch(`${API_URL}/api/photo/${photo.id}`);
+      const token = await getSession();
+      const response = await fetch(`${API_URL}/api/photo/${photo.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
       const data = await response.json();
       if (data.image_data) {
         setFullImages(prev => ({ ...prev, [photo.id]: data.image_data }));
@@ -192,15 +195,12 @@ export default function PhotoViewer({ visible, photos, initialIndex, onClose, on
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const token = await getSession();
           setDeleting(true);
           try {
             const token = await getSession();
             const response = await fetch(`${API_URL}/api/photo/${currentPhoto.id}`, {
               method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
+              headers: { 'Authorization': `Bearer ${token}` },
             });
             if (response.ok) {
               if (photos.length === 1) onClose();

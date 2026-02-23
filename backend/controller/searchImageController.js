@@ -4,22 +4,20 @@ import { getClientAuthToken } from '../utils/getClientAuthToken.js';
 export const searchImagesController = async (req, res) => {
     try {
         const supabase = getClientAuthToken(req, res);
-
         if (!supabase) return;
 
-        const { data: {user} } = await supabase.auth.getUser();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
         const { query } = req.body;
-        const result = await searchImage(user, supabase, query);
-        res.status(200).json({
-            count: result.length,
-            result
-        });
+        const { results, count } = await searchImage(user, supabase, query);
+
+        res.status(200).json({ results, count });
     } catch (error) {
         console.error('Search error:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Search failed',
-            details: error.message 
+            details: error.message
         });
     }
 };
