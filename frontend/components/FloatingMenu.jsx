@@ -3,17 +3,15 @@ import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { takePhoto } from 'service/photoService';
 
-export default function FloatingMenu({ menuAnim, refreshPhotos }) {
+export default function FloatingMenu({ menuAnim, appendPhoto }) {
   const [menuVisible, setMenuVisible] = useState(false);
 
 
   const handleTakePhoto = async () => {
-    const photoUri = await takePhoto();
-        
-    if (photoUri) {
-      console.log("Photo ready for AI processing:", photoUri);
-      toggleMenu(); 
-      refreshPhotos();
+    const newPhoto = await takePhoto();
+    if (newPhoto) {
+      toggleMenu();
+      appendPhoto(newPhoto);
     }
   }
 
@@ -43,11 +41,6 @@ export default function FloatingMenu({ menuAnim, refreshPhotos }) {
   const iconRotation = menuAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '45deg'],
-  });
-
-  const buttonColor = menuAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#121212', '#3f3f46'],
   });
 
   return (

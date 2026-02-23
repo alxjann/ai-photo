@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getSession } from './auth/authService';
 import { API_URL } from 'config/api';
 
-export const takePhoto = async (refreshPhotos) => {
+export const takePhoto = async () => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
 
@@ -20,32 +20,34 @@ export const takePhoto = async (refreshPhotos) => {
 
     const photo = await MediaLibrary.createAssetAsync(result.assets[0].uri);
 
-    console.log(photo)
+    console.log('Take photo:', photo.id)
 
     const token = await getSession();
 
     const formData = new FormData();
     formData.append('image', {
-        uri: result.assets[0].uri,
-        name: 'photo.jpg',
-        type: 'image/jpeg',
+      uri: result.assets[0].uri,
+      name: 'photo.jpg',
+      type: 'image/jpeg',
     });
+    formData.append('asset_id', photo.id);
 
     try {
-        const response = await fetch(`${API_URL}/api/image`, {
-            method: 'POST',
-            body: formData,
-            headers: { 
-                'Content-Type': 'multipart/form-data',
-                'Authorization': `Bearer ${token}`
-            },
-        });
+      const response = await fetch(`${API_URL}/api/image`, {
+        method: 'POST',
+        body: formData,
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+      });
 
-        const data = await response.json();
-        return result.assets[0].uri;
+      const data = await response.json();
+      // Return an object with asset id and uri for the grid
+      return { photo_id: photo.id, uri: result.assets[0].uri };
     } catch (error) {
-        console.error("Upload failed", error);
-        throw error;
+      console.error("Upload failed", error);
+      throw error;
     }
 
 
@@ -98,6 +100,8 @@ export const getPhotos = async () => {
     });
 
     const data = await response.json();
+    //console.log(data.result[0].photo_id)
+    //console.log(data.result)
 
     if (response.ok) {
       return data.result;
@@ -109,3 +113,13 @@ export const getPhotos = async () => {
     throw error; 
   }
 };
+
+export const getPhotoLocalURI = async (photoId) => {
+  try {
+    const assetInfo = await MediaLibrary.getAssetInfoAsync(photoId);
+    return assetInfo.localUri || assetInfo.uri;
+  } catch (error) {
+    console.error("Asset not found:", photoId);
+    throw error;
+  }
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, FlatList, Text, Pressable, TextInput, Animated, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
@@ -14,7 +14,6 @@ export default function Library() {
   const [photos, setPhotos] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   const menuAnim = useRef(new Animated.Value(0)).current;
@@ -25,18 +24,22 @@ export default function Library() {
       const { status } = await requestPermission();
       if (status !== 'granted') return;
     }
-
     const assets = await getPhotos();
     setPhotos(assets);
-  }
-
-  const handlePressPhoto = (item) => {
-    console.log('Photo pressed:', item);
-    setSelectedPhoto(item);
-  }
+  };
+  
 
   useEffect(() => { handleGetPhotos(); }, []);
 
+  const handlePressPhoto = useCallback((item) => {
+    setSelectedPhoto(item);
+  }, []);
+
+  const appendPhoto = useCallback((newPhoto) => {
+    setPhotos(prev => [...prev, newPhoto]);
+  }, []);
+
+  
   const toggleSearch = () => {
     const toValue = isSearching ? 0 : 1;
     if (!isSearching) setIsSearching(true);
@@ -53,6 +56,19 @@ export default function Library() {
       }
     });
   };
+
+  const renderPhotoItem = useCallback(
+    ({ item }) => (
+      <PhotoItem
+        photoId={item.photo_id}
+        localUri={item.uri ?? null}
+        numColumns={numColumns}
+        onPress={handlePressPhoto}
+        item={item}
+      />
+    ),
+    [handlePressPhoto]
+  );
 
   return (
     <View className="flex-1 bg-white">
@@ -91,15 +107,10 @@ export default function Library() {
       <FlatList
         data={photos}
         numColumns={numColumns}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.photo_id}
         contentContainerStyle={{ paddingHorizontal: 2.5 }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => 
-          <PhotoItem 
-            uri={item.thumbnail_data} 
-            numColumns={numColumns} 
-            onPress={() => handlePressPhoto(item)}
-        />}
+        renderItem={renderPhotoItem}
       />
 
       <PhotoViewer 
@@ -111,8 +122,8 @@ export default function Library() {
       {/* + button */}
       <FloatingMenu 
         menuAnim={menuAnim} 
-        refreshPhotos={handleGetPhotos}
-      />
+        appendPhoto={appendPhoto}
+      />      
     </View>
   );
 }
