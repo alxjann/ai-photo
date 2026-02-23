@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { getSession } from './auth/authService';
 import { API_URL } from 'config/api';
 
-export const takePhoto = async () => {
+export const takePhoto = async (refreshPhotos) => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
 
@@ -18,7 +18,9 @@ export const takePhoto = async () => {
 
     if (result.canceled) return;
 
-    await MediaLibrary.createAssetAsync(result.assets[0].uri);
+    const photo = await MediaLibrary.createAssetAsync(result.assets[0].uri);
+
+    console.log(photo)
 
     const token = await getSession();
 
@@ -45,6 +47,7 @@ export const takePhoto = async () => {
         console.error("Upload failed", error);
         throw error;
     }
+
 
 }
 
