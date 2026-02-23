@@ -17,7 +17,7 @@ export const processImageController = async (req, res) => {
 
         const manualDescription = req.body.manualDescription || null;
         
-        const result = await processImage(user, supabase, req.file.buffer, manualDescription);
+        const result = await processImage(user, supabase, req.file.buffer, req.body.asset_id, manualDescription);
         
         res.status(200).json({
             message: 'image processed successfully',

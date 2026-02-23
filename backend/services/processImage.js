@@ -1,33 +1,12 @@
-import { getCompressedImageBuffer, getThumbnailBuffer } from '../utils/compressImage.js';
+import { getCompressedImageBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
-import phash from 'sharp-phash';
 
-export const processImage = async (user, supabase, image, manualDescription = null) => {
+export const processImage = async (user, supabase, image, asset_id, manualDescription = null) => {
     const start = Date.now();
     if (!user || !user.id) throw new Error('Invalid user object or missing user.id');
     const compressedImage = await getCompressedImageBuffer(image);
-    const thumbnailBuffer = await getThumbnailBuffer(image);
 
-    const imageHash = await phash(compressedImage);
-
-    const { data: existingPhotos } = await supabase
-        .from('photo')
-        .select('id, phash');
-
-    if (existingPhotos) {
-        for (const photo of existingPhotos) {
-            if (photo.phash) {
-                const distance = hammingDistance(imageHash, photo.phash);
-                if (distance < 10) {
-                    throw new Error(`Duplicate image detected (perceptual hash distance: ${distance})`);
-                }
-            }
-        }
-    }
-
-    const base64Image = `data:image/jpeg;base64,${compressedImage.toString('base64')}`;
-    const base64Thumbnail = `data:image/jpeg;base64,${thumbnailBuffer.toString('base64')}`;
     const description = await describeImage(compressedImage);
 
     const literalStart = description.indexOf('[LITERAL]');
@@ -56,12 +35,10 @@ export const processImage = async (user, supabase, image, manualDescription = nu
         .from('photo')
         .insert({
             user_id: user.id,
-            image_data: base64Image,
-            thumbnail_data: base64Thumbnail,
+            photo_id: asset_id, 
             descriptive,
             literal,
             tags,
-            phash: imageHash,
             manual_description: manualDescription?.trim() || null,
             descriptive_embedding: descriptiveEmbedding,
             literal_embedding: literalEmbedding,
@@ -76,11 +53,3 @@ export const processImage = async (user, supabase, image, manualDescription = nu
 
     return insertData;
 };
-
-function hammingDistance(hash1, hash2) {
-    let distance = 0;
-    for (let i = 0; i < hash1.length; i++) {
-        if (hash1[i] !== hash2[i]) distance++;
-    }
-    return distance;
-}
