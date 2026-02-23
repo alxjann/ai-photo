@@ -21,7 +21,7 @@ export const searchImage = async (user, supabase, query) => {
         'match_descriptive_photos',
         {
             query_embedding: queryEmbedding,
-            match_threshold: 0.25,
+            match_threshold: 0.35,
             match_count: 20
         }
     );
