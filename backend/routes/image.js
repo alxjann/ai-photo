@@ -14,7 +14,7 @@ const upload = multer({
 });
 
 router.post('/image', upload.single('image'), processImageController);
-router.post('/images/batch', upload.array('images', 10), batchProcessImagesController);
+router.post('/images/batch', upload.array('images', 50), batchProcessImagesController);
 router.delete('/photo/:id', deletePhotoController);
 router.get('/photo/:id', getPhotoController);
 
