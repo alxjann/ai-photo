@@ -30,7 +30,7 @@ export const takePhoto = async () => {
       name: 'photo.jpg',
       type: 'image/jpeg',
     });
-    formData.append('asset_id', photo.id);
+    formData.append('photo_id', photo.id);
 
     try {
       const response = await fetch(`${API_URL}/api/image`, {
@@ -43,7 +43,6 @@ export const takePhoto = async () => {
       });
 
       const data = await response.json();
-      // Return an object with asset id and uri for the grid
       return { photo_id: photo.id, uri: result.assets[0].uri };
     } catch (error) {
       console.error("Upload failed", error);
@@ -54,8 +53,57 @@ export const takePhoto = async () => {
 }
 
 export const processPhotos = async (photos) => {
+  const token = await getSession();
+  console.log('Photo count:', photos.length)
 
-  if (!photos || photos.lengths === 0)
+  if (!photos || photos.length === 0) throw new Error("No photos selected");
+
+  const formData = new FormData();
+
+  if (photos.length === 1) {
+    formData.append('image', {
+        uri: photos[0].uri,
+        name: 'photo.jpg',
+        type: 'image/jpeg',
+    });
+    formData.append('photo_id', photos[0].assetId);
+  } else {
+    photos.forEach((photo, index) => {
+      console.log('PHOTO URI:', photo.uri)
+      formData.append('images', {
+        uri: photo.uri,
+        name: `photo_${index}.jpg`,
+        type: 'image/jpeg',
+      });
+      formData.append('photo_id', photo.assetId);
+      console.log(photo.assetId)
+    });
+  }
+
+  try {
+    const api = (photos.length === 1) ? `${API_URL}/api/image` : `${API_URL}/api/images/batch`;
+    
+    const response = await fetch(api, {
+        method: 'POST',
+        body: formData,
+        headers: { 
+            'Content-Type': 'multipart/form-data',
+            'Authorization': `Bearer ${token}`
+        },
+    });
+
+    const data = await response.json();
+    console.log('POST RESPONSE:', data)
+    //return result.assets[0].uri;
+  } catch (error) {
+    console.error("Processing photo failed", error);
+  }
+
+  //console.log(photos)
+/*
+
+
+  if (!photos || photos.length === 0)
     throw new Error("No photos selected");
 
   const token = await getSession();
@@ -83,7 +131,7 @@ export const processPhotos = async (photos) => {
     console.error("Processing photo failed", error);
     throw error;
   }
-
+*/
 }
 
 export const getPhotos = async () => {

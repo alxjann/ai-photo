@@ -1,6 +1,7 @@
 import { Stack, Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../config/supabase.js';
+import { PhotoProvider } from 'context/PhotoContext.jsx';
 import '../global.css';
 
 export default function RootLayout() {
@@ -35,15 +36,17 @@ export default function RootLayout() {
   if (isLoggedIn === null) return null;
 
   return (
-    <Stack 
-      screenOptions={{ 
-        headerShown: false,
-        animation: 'fade',
-        animationDuration: 600,
-      }} 
-    >
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(auth)" />
-    </Stack>
+    <PhotoProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+          animationDuration: 600,
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+      </Stack>
+    </PhotoProvider>
   );
 }

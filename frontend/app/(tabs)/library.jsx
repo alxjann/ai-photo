@@ -6,12 +6,13 @@ import FloatingMenu from '../../components/FloatingMenu.jsx';
 import PhotoItem from '../../components/PhotoItem.jsx';
 import { getPhotos } from 'service/photoService.js';
 import PhotoViewer from '../../components/PhotoViewer';
+import { usePhotoContext } from 'context/PhotoContext.jsx';
 
 const numColumns = 4;
 
 export default function Library() {
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({ mediaTypes: 'photo' });
-  const [photos, setPhotos] = useState([]);
+  const { photos, setPhotos, appendPhoto } = usePhotoContext();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -28,17 +29,11 @@ export default function Library() {
     setPhotos(assets);
   };
   
-
   useEffect(() => { handleGetPhotos(); }, []);
 
   const handlePressPhoto = useCallback((item) => {
     setSelectedPhoto(item);
   }, []);
-
-  const appendPhoto = useCallback((newPhoto) => {
-    setPhotos(prev => [...prev, newPhoto]);
-  }, []);
-
   
   const toggleSearch = () => {
     const toValue = isSearching ? 0 : 1;

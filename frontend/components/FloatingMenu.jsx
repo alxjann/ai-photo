@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { takePhoto } from 'service/photoService';
 import { useRouter } from 'expo-router';
+import { usePhotoContext } from 'context/PhotoContext';
 
-export default function FloatingMenu({ menuAnim, appendPhoto }) {
+export default function FloatingMenu({ menuAnim }) {
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
-
+  const { appendPhoto } = usePhotoContext();
 
   const handleTakePhoto = async () => {
     const newPhoto = await takePhoto();

@@ -2,11 +2,14 @@ import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { processPhotos, takePhoto } from 'service/photoService';
+import { usePhotoContext } from 'context/PhotoContext';
 
 export default function Upload() {
   const router = useRouter();
+  const { appendPhoto } = usePhotoContext();
 
-  const handlePickFromGallery = async () => {
+  const handleSelectFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
@@ -14,17 +17,16 @@ export default function Upload() {
     });
 
     if (!result.canceled) {
-      console.log(result.assets);
-    }
-  };
+    	await processPhotos(result.assets)
 
-  const handleTakePhoto = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      console.log(result.assets[0]);
+			try {
+				result.assets.forEach((asset) => {
+					const id = asset.assetId || asset.id;
+					appendPhoto({ photo_id: id, uri: asset.uri });
+				});
+			} catch (e) {
+				console.error('Appending photos failed', e);
+			}
     }
   };
 
@@ -40,7 +42,7 @@ export default function Upload() {
       <ScrollView className="flex-1 px-4 pt-6">
         {/* open gallery */}
         <Pressable
-          onPress={handlePickFromGallery}
+          onPress={handleSelectFromGallery}
           className="flex-row items-center p-5 mb-4 bg-[#F5F5F7] rounded-2xl active:opacity-70"
         >
           <View
@@ -51,23 +53,6 @@ export default function Upload() {
           <View className="flex-1">
             <Text className="text-lg font-semibold">Choose from Gallery</Text>
             <Text className="text-gray-500 text-sm mt-0.5">Select one or more photos</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#999" />
-        </Pressable>
-
-        {/* take photo */}
-        <Pressable
-          onPress={handleTakePhoto}
-          className="flex-row items-center p-5 mb-4 bg-[#F5F5F7] rounded-2xl active:opacity-70"
-        >
-          <View
-            className="w-12 h-12 rounded-full items-center justify-center mr-4 bg-c bg-[#121212]"
-          >
-            <Ionicons name="camera-outline" size={22} color="white" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-lg font-semibold">Take a Photo</Text>
-            <Text className="text-gray-500 text-sm mt-0.5">Use your camera</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#999" />
         </Pressable>
