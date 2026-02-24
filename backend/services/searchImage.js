@@ -7,7 +7,7 @@ export const searchImage = async (user, supabase, query) => {
             .from('photo')
             .select('id, photo_id, descriptive, literal, created_at')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
         console.log(`Returning all ${data?.length || 0} photos`);
