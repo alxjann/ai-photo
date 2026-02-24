@@ -1,22 +1,21 @@
 import { processImage } from './processImage.js';
 
-export const batchProcessImages = async (user, files) => {
+export const batchProcessImages = async (user, supabase, files, photoIds) => {
     if (!files || files.length === 0) 
         throw new Error('No image files provided');
     
-
     const totalFiles = files.length;
     console.log(`Starting batch processing of ${totalFiles} images...`);
 
     const results = [];
     const errors = [];
 
-    // Process images sequentially
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        const photoId = photoIds[i];
         try {
             console.log(`\nProcessing image ${i + 1}/${totalFiles}...`);
-            const result = await processImage(user, file.buffer);
+            const result = await processImage(user, supabase, file.buffer, photoId);
             results.push({
                 index: i,
                 photo: result
