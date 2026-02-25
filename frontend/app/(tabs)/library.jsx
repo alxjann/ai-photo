@@ -75,6 +75,42 @@ export default function Library() {
   
   useEffect(() => { handleGetPhotos(); }, []);
 
+  useEffect(() => {
+    if (!isSearching) {
+      handleGetPhotos();
+    }
+  }, [isSearching]);
+
+  const handleSearch = async () => {
+    try {
+      if (!searchQuery || searchQuery.trim() === '') {
+        await handleGetPhotos();
+        return;
+      }
+
+      const assets = await getPhotos(searchQuery.trim());
+      const photosWithUris = await Promise.all(
+        assets.map(async (photo) => {
+          if (photo.uri) return photo;
+          try {
+            const uri = await getPhotoLocalURI(photo.photo_id);
+            return { ...photo, uri };
+          } catch (error) {
+            console.error(`Error fetching URI for ${photo.photo_id}:`, error);
+            return photo;
+          }
+        })
+      );
+
+      const sorted = photosWithUris
+        .filter(Boolean)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setPhotos(sorted);
+    } catch (e) {
+      console.error('Search error', e);
+    }
+  };
+
   const handlePressPhoto = useCallback((item) => {
     console.log('Photo pressed:', item.item.photo_id);
     setSelectedPhoto(item);
@@ -135,6 +171,7 @@ export default function Library() {
                 placeholderTextColor="#aaa"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearch}
                 autoFocus
                 className="bg-gray-100 rounded-xl px-4 py-3 text-gray-900 text-base"
               />
