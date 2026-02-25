@@ -5,7 +5,7 @@ import * as MediaLibrary from 'expo-media-library';
 import FloatingMenu from '../../components/FloatingMenu.jsx';
 import PhotoItem from '../../components/PhotoItem.jsx';
 import { getPhotos, getPhotoLocalURI } from 'service/photoService.js';
-import PhotoViewer from '../../components/PhotoViewer';
+import PhotoViewer from '../../components/PhotoViewer.jsx';
 import { usePhotoContext } from 'context/PhotoContext.jsx';
 import { getCachedPhotos, setCachedPhotos } from '../../service/cacheService.js';
 
