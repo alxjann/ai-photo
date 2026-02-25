@@ -27,7 +27,7 @@ export const addPhotoToCache = async(photo) => {
     if (idx >= 0) 
         existing[idx] = { ...existing[idx], ...photo };
     else 
-        existing.unshift(photo);
+        existing.push(photo);
     
     await setCachedPhotos(existing);
   } catch (e) {

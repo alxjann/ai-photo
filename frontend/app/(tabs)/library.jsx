@@ -5,7 +5,7 @@ import * as MediaLibrary from 'expo-media-library';
 import FloatingMenu from '../../components/FloatingMenu.jsx';
 import PhotoItem from '../../components/PhotoItem.jsx';
 import { getPhotos, getPhotoLocalURI } from 'service/photoService.js';
-import PhotoViewer from '../../components/PhotoViewer';
+import PhotoViewer from '../../components/PhotoViewer.jsx';
 import { usePhotoContext } from 'context/PhotoContext.jsx';
 import { getCachedPhotos, setCachedPhotos } from '../../service/cacheService.js';
 
@@ -27,15 +27,33 @@ export default function Library() {
       if (status !== 'granted') return;
     }
 
-    //check cache memory first
+    //check cache first
     const cached = await getCachedPhotos();
     if (cached && cached.length) {
-      console.log('1')
       const photosWithUris = await Promise.all(
-      cached.map(async (photo) => {
-        if (photo.uri) 
-          return photo;
-        /*
+        cached.map(async (photo) => {
+          if (photo.uri) return photo;
+          try {
+            const uri = await getPhotoLocalURI(photo.photo_id);
+            return { ...photo, uri };
+          } catch (error) {
+            console.error(`Error fetching URI for ${photo.photo_id}:`, error);
+            return photo;
+          }
+        })
+      );
+
+      const sortedCached = photosWithUris
+        .filter(Boolean)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setPhotos(sortedCached);
+      return;
+    }
+
+    //fallback to supabase
+    const assets = await getPhotos();
+    const photosWithUris = await Promise.all(
+      assets.map(async (photo) => {
         if (photo.uri) return photo;
         try {
           const uri = await getPhotoLocalURI(photo.photo_id);
@@ -44,33 +62,54 @@ export default function Library() {
           console.error(`Error fetching URI for ${photo.photo_id}:`, error);
           return photo;
         }
-        */
       })
     );
-    setPhotos(photosWithUris);
-    return;
-  }
 
-  //fallback to supabase
-  const assets = await getPhotos();
-  const photosWithUris = await Promise.all(
-    assets.map(async (photo) => {
-      if (photo.uri) return photo;
-      try {
-        const uri = await getPhotoLocalURI(photo.photo_id);
-        return { ...photo, uri };
-      } catch (error) {
-        console.error(`Error fetching URI for ${photo.photo_id}:`, error);
-        return photo;
-      }
-    })
-  );
-  //cache the photos
-  setPhotos(photosWithUris);
-  await setCachedPhotos(photosWithUris);
-};
+    //cache the photos
+    const sorted = photosWithUris
+      .filter(Boolean)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    setPhotos(sorted);
+    await setCachedPhotos(sorted);
+  };
   
   useEffect(() => { handleGetPhotos(); }, []);
+
+  useEffect(() => {
+    if (!isSearching) {
+      handleGetPhotos();
+    }
+  }, [isSearching]);
+
+  const handleSearch = async () => {
+    try {
+      if (!searchQuery || searchQuery.trim() === '') {
+        await handleGetPhotos();
+        return;
+      }
+
+      const assets = await getPhotos(searchQuery.trim());
+      const photosWithUris = await Promise.all(
+        assets.map(async (photo) => {
+          if (photo.uri) return photo;
+          try {
+            const uri = await getPhotoLocalURI(photo.photo_id);
+            return { ...photo, uri };
+          } catch (error) {
+            console.error(`Error fetching URI for ${photo.photo_id}:`, error);
+            return photo;
+          }
+        })
+      );
+
+      const sorted = photosWithUris
+        .filter(Boolean)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setPhotos(sorted);
+    } catch (e) {
+      console.error('Search error', e);
+    }
+  };
 
   const handlePressPhoto = useCallback((item) => {
     console.log('Photo pressed:', item.item.photo_id);
@@ -132,6 +171,7 @@ export default function Library() {
                 placeholderTextColor="#aaa"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                onSubmitEditing={handleSearch}
                 autoFocus
                 className="bg-gray-100 rounded-xl px-4 py-3 text-gray-900 text-base"
               />

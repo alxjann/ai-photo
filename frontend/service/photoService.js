@@ -100,7 +100,7 @@ export const processPhotos = async (photos) => {
   }
 }
 
-export const getPhotos = async () => {
+export const getPhotos = async (query = '') => {
   try {
     const token = await getSession();
 
@@ -110,7 +110,7 @@ export const getPhotos = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ query: '' }),
+      body: JSON.stringify({ query }),
     });
 
     const data = await response.json();
