@@ -24,7 +24,7 @@ Search your photos using natural language. Upload a photo, and Elysium's AI will
 ### Android
 Download the latest APK and install it directly on your phone:
 
-> **[WIP Link](https://expo.dev/artifacts/eas)**
+> **[App Link]([https://expo.dev/artifacts/eas](https://expo.dev/artifacts/eas/h2ZD4XtiEpMMVs6jw3vVyM.apk))**
 
 Allow "Install from unknown sources"
 Allow "Access to all media files" 
