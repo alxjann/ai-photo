@@ -14,7 +14,7 @@ Search your photos using natural language. Upload a photo, and Elysium's AI will
 | Navigation | Expo Router |
 | Backend | Node.js + Express |
 | Database | Supabase (PostgreSQL + pgvector) |
-| AI | GitHub Models (GPT-4o + text-embedding-3-large) |
+| AI | GitHub Models (GPT-4o-mini + text-embedding-3-small) |
 | Deployment | Railway |
 
 ---
