@@ -35,7 +35,6 @@ export const processImage = async (user, supabase, image, photo_id, manualDescri
         .from('photo')
         .insert({
             user_id: user.id,
-            photo_id: photo_id, 
             descriptive,
             literal,
             tags,
