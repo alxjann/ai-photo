@@ -51,8 +51,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "eb096296-4046-4071-8aaf-06214e8ea581"
+        "projectId": "c0805dba-b0dc-4a4c-866e-38f09f38d81d"
       }
-    }
+    },
+    "owner": "rarufu"
   }
 }
