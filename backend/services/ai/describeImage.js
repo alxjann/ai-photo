@@ -20,7 +20,7 @@ FORMAT:
 <2-3 sentences describing exactly what you see — be highly specific about colors, textures, ingredients>
 
 [DESCRIPTIVE]
-<2-3 sentences describing context, setting, mood, or significance — mention the dish name explicitly>
+<2-3 sentences describing context, setting, mood, or significance — mention the dish name explicitly. For animals, include behavioral traits and physical capabilities (e.g. can fly, climbs trees, runs fast, swims, has four legs, nocturnal, etc.)>
 
 [TAGS]
 <comma-separated keywords>
@@ -30,7 +30,7 @@ TAG CATEGORIES (include all relevant ones):
 - People: person, people, selfie, portrait, group
 - Characters: name specific game/anime/film characters (e.g., kimmy, luffy, naruto, goku)
 - Franchise/IP: mobile-legends, genshin-impact, valorant, one-piece, naruto, pokemon
-- Animals: cat, dog, bird — name species if known
+- Animals: ALWAYS include the tag animal for any living creature that is not a person. Then add specific tags: cat, dog, bird, fish, insect, reptile, etc. Name the exact species if known (e.g., spider-monkey, scarlet-macaw, labrador)
 - Food: Tag ONLY the dish actually shown — never add other dish names as tags just because they share ingredients. 
   Example: bicol-express should NOT also be tagged pork-adobo just because both contain pork.
   Name the specific dish: pork-adobo, beef-sinigang, bicol-express, chicken-curry, lechon, kare-kare, pinakbet, etc.
