@@ -3,6 +3,21 @@ import * as ImagePicker from 'expo-image-picker';
 import { getSession } from './auth/authService';
 import { API_URL } from 'config/api';
 
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'tiff', 'tif', 'gif'];
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'];
+
+export const isImageAsset = (asset) => {
+    if (asset.mediaType === 'video') return false;
+    const ext = (asset.uri || asset.fileName || '').split('.').pop().toLowerCase();
+    return IMAGE_EXTENSIONS.includes(ext) || asset.mediaType === 'photo';
+};
+
+export const isVideoAsset = (asset) => {
+    if (asset.mediaType === 'video') return true;
+    const ext = (asset.uri || asset.fileName || '').split('.').pop().toLowerCase();
+    return VIDEO_EXTENSIONS.includes(ext);
+};
+
 export const takePhoto = async () => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
@@ -45,7 +60,6 @@ export const takePhoto = async () => {
 
 export const processPhotos = async (photos) => {
     const token = await getSession();
-
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
     const assets = photos.map((photo) => {
@@ -53,27 +67,58 @@ export const processPhotos = async (photos) => {
         return { ...photo, resolvedAssetId: assetId };
     });
 
+    // Split into images (AI-processed) and videos/GIFs (stored as-is)
+    const imageAssets = assets.filter(a => isImageAsset(a));
+    const videoAssets = assets.filter(a => !isImageAsset(a));
+
+    // Videos go straight to library without AI processing
+    const videoResults = videoAssets.map(a => ({
+        id: null,
+        uri: a.uri,
+        device_asset_id: a.resolvedAssetId,
+        mediaType: 'video',
+        isVideo: true,
+    }));
+
+    if (imageAssets.length === 0) {
+        return { added: videoResults, duplicates: 0 };
+    }
+
     const formData = new FormData();
 
-    if (assets.length === 1) {
+    if (imageAssets.length === 1) {
+        const ext = imageAssets[0].uri.split('.').pop().toLowerCase();
+        const mimeType = ext === 'gif' ? 'image/gif'
+            : ext === 'png' ? 'image/png'
+            : ext === 'tiff' || ext === 'tif' ? 'image/tiff'
+            : ext === 'webp' ? 'image/webp'
+            : 'image/jpeg';
+
         formData.append('image', {
-            uri: assets[0].uri,
-            name: 'photo.jpg',
-            type: 'image/jpeg',
+            uri: imageAssets[0].uri,
+            name: `photo.${ext}`,
+            type: mimeType,
         });
-        formData.append('device_asset_id', assets[0].resolvedAssetId);
+        formData.append('device_asset_id', imageAssets[0].resolvedAssetId);
     } else {
-        assets.forEach((photo, index) => {
+        imageAssets.forEach((photo, index) => {
+            const ext = photo.uri.split('.').pop().toLowerCase();
+            const mimeType = ext === 'gif' ? 'image/gif'
+                : ext === 'png' ? 'image/png'
+                : ext === 'tiff' || ext === 'tif' ? 'image/tiff'
+                : ext === 'webp' ? 'image/webp'
+                : 'image/jpeg';
+
             formData.append('images', {
                 uri: photo.uri,
-                name: `photo_${index}.jpg`,
-                type: 'image/jpeg',
+                name: `photo_${index}.${ext}`,
+                type: mimeType,
             });
             formData.append('device_asset_id', photo.resolvedAssetId);
         });
     }
 
-    const api = assets.length === 1 ? `${API_URL}/api/image` : `${API_URL}/api/images/batch`;
+    const api = imageAssets.length === 1 ? `${API_URL}/api/image` : `${API_URL}/api/images/batch`;
 
     const response = await fetch(api, {
         method: 'POST',
@@ -87,27 +132,28 @@ export const processPhotos = async (photos) => {
     const data = await response.json();
 
     if (response.status === 409 || data.error === 'Duplicate image') {
-        return { added: [], duplicates: assets.length };
+        return { added: videoResults, duplicates: imageAssets.length };
     }
 
     if (!response.ok) {
         console.error('processPhotos error:', data);
-        return { added: [], duplicates: 0 };
+        return { added: videoResults, duplicates: 0 };
     }
 
-    if (assets.length === 1) {
-        return {
-            added: [{ id: data.photo?.id, uri: assets[0].uri }],
-            duplicates: 0
-        };
+    let imageResults = [];
+    if (imageAssets.length === 1) {
+        imageResults = [{ id: data.photo?.id, uri: imageAssets[0].uri }];
+    } else {
+        imageResults = (data.results || []).map(r => ({
+            id: r.photo?.id,
+            uri: imageAssets[r.index].uri,
+        }));
     }
 
-    const successfulResults = data.results || [];
-    const added = successfulResults.map(r => ({
-        id: r.photo?.id,
-        uri: assets[r.index].uri,
-    }));
-    return { added, duplicates: assets.length - added.length };
+    return {
+        added: [...imageResults, ...videoResults],
+        duplicates: imageAssets.length - imageResults.length,
+    };
 };
 
 export const getPhotos = async (query = '') => {

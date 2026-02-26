@@ -13,7 +13,7 @@ export default function Upload() {
 
   const handleSelectFromGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images', 'videos', 'livePhotos'],
       allowsMultipleSelection: true,
       quality: 1,
     });
@@ -61,7 +61,7 @@ export default function Upload() {
           </View>
           <View className="flex-1">
             <Text className="text-lg font-semibold">Choose from Gallery</Text>
-            <Text className="text-gray-500 text-sm mt-0.5">Select one or more photos</Text>
+            <Text className="text-gray-500 text-sm mt-0.5">Select photos, videos, or GIFs</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#999" />
         </Pressable>
@@ -71,10 +71,10 @@ export default function Upload() {
             <ActivityIndicator size="small" color="#3B5BDB" />
             <View className="ml-4 flex-1">
               <Text className="text-[#3B5BDB] font-semibold text-base">
-                Analyzing {uploadState.count} photo{uploadState.count !== 1 ? 's' : ''}…
+                Processing {uploadState.count} file{uploadState.count !== 1 ? 's' : ''}…
               </Text>
               <Text className="text-[#6681E0] text-sm mt-0.5">
-                AI is describing and indexing your images
+                Images are being analyzed by AI. Videos are added directly.
               </Text>
             </View>
           </View>

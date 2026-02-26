@@ -8,9 +8,25 @@ import { getPhotoController } from '../controller/getPhotoController.js';
 const router = express.Router();
 
 const storage = multer.memoryStorage();
-const upload = multer({ 
-    storage, 
-    limits: { fileSize: 10 * 1024 * 1024 }
+const ALLOWED_MIMETYPES = [
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+    'image/tiff', 'image/gif', 'image/heic', 'image/heif',
+    'video/mp4', 'video/quicktime', 'video/x-msvideo',
+    'video/webm', 'video/x-matroska',
+];
+
+const fileFilter = (req, file, cb) => {
+    if (ALLOWED_MIMETYPES.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error(`Unsupported file type: ${file.mimetype}`), false);
+    }
+};
+
+const upload = multer({
+    storage,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB to support videos
+    fileFilter,
 });
 
 router.post('/image', upload.single('image'), processImageController);

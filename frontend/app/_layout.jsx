@@ -1,4 +1,4 @@
-import { Stack, Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../config/supabase.js';
 import { PhotoProvider } from 'context/PhotoContext.jsx';
@@ -43,10 +43,7 @@ export default function RootLayout() {
           animation: 'fade',
           animationDuration: 600,
         }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(auth)" />
-      </Stack>
+      />
     </PhotoProvider>
   );
 }
