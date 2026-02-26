@@ -1,4 +1,4 @@
-import { generateEmbedding } from "../services/ai/generateEmbedding.js";
+import { textEmbedding } from "../services/ai/textEmbedding.js";
 
 export const generateEmbeddingController = async (req, res) => {
     try {
@@ -7,7 +7,7 @@ export const generateEmbeddingController = async (req, res) => {
         if (!text)
             return res.status(400).json({ error: "no text provided"})
 
-        const result = await generateEmbedding(text);
+        const result = await textEmbedding(text);
 
         res.status(200).json({
             message: "embedding generated successfully",

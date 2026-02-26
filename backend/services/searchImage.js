@@ -1,11 +1,11 @@
-import { generateEmbedding } from './ai/generateEmbedding.js';
+import { textEmbedding } from './ai/textEmbedding.js';
 
 export const searchImage = async (user, supabase, query) => {
     if (!query || query.trim() === '') {
         // No query, return all images WITH image_data
         const { data, error } = await supabase
-            .from('photo')
-            .select('id, photo_id, descriptive, literal, created_at')
+            .from('images')
+            .select('id, photo_id, created_at')
             .eq('user_id', user.id)
             .order('created_at', { ascending: true });
 
@@ -16,42 +16,21 @@ export const searchImage = async (user, supabase, query) => {
 
     console.log('Search query:', query);
     // Generate embedding for the search query
-    const queryEmbedding = await generateEmbedding(query);
+    const queryEmbedding = await textEmbedding(query);
     console.log('Query embedding generated (dimension:', queryEmbedding.length, ')');
     
-    // Search descriptive embeddings
-    const { data: descriptiveResults, error: descError } = await supabase.rpc(
-        'match_descriptive_photos',
+    const { data, error } = await supabase.rpc(
+        'match_photos', // New simplified SQL function
         {
             query_embedding: queryEmbedding,
-            match_threshold: 0.3,
-            match_count: 20
+            match_threshold: 0.2, // CLIP threshold is usually lower than standard text models
+            match_count: 40,
+            p_user_id: user.id // Pass user ID to ensure they only see their own photos
         }
     );
-    if (descError) throw descError;
 
-    console.log(`Descriptive results: ${descriptiveResults?.length || 0} matches`);
+    if (error) throw error;
 
-    // Search literal embeddings
-    const { data: literalResults, error: litError } = await supabase.rpc(
-        'match_literal_photos',
-        {
-            query_embedding: queryEmbedding,
-            match_threshold: 0.3,
-            match_count: 20
-        }
-    );
-    if (litError) throw litError;
-    console.log(`Literal results: ${literalResults?.length || 0} matches`);
-
-    // Combine and deduplicate results
-    const allResults = [...(descriptiveResults || []), ...(literalResults || [])];
-    const uniqueResults = Array.from(
-        new Map(allResults.map(item => [item.id, item])).values()
-    );
-    uniqueResults.sort((a, b) => b.similarity - a.similarity);
-
-    console.log(`Total unique results: ${uniqueResults.length}`);
-
-    return uniqueResults;
+    console.log(`Found ${data?.length || 0} matches using multimodal search`);
+    return data;
 }

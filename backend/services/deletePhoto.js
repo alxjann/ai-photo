@@ -4,7 +4,7 @@ export const deletePhoto = async (user, supabase, photoId) => {
     console.log('Deleting photo:', photoId);
 
     const { data, error } = await supabase
-        .from('photo')
+        .from('images')
         .delete()
         .eq('photo_id', photoId)
         .eq('user_id', user.id);
