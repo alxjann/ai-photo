@@ -82,10 +82,8 @@ export default function Library() {
             }
 
             const assets = await getPhotos(searchQuery.trim());
-            console.log('assets returned:', assets?.length, JSON.stringify(assets?.[0]));
 
             const resolved = await resolveUris(assets);
-            console.log('resolved:', resolved?.length, 'first uri:', resolved?.[0]?.uri);
 
             setPhotos(resolved);
         } catch (e) {
