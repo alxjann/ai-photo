@@ -1,22 +1,3 @@
-<<<<<<< HEAD
-import { Modal, View, Pressable } from 'react-native';
-import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
-
-export default function PhotoViewer({ visible, photo, onClose, onDelete, isDeleting = false }) {
-  if (!visible || !photo) return null;
-
-  return (
-    <Modal visible={visible} transparent={false} onRequestClose={onClose}>
-      <View className="flex-1 bg-black justify-center items-center">
-        {photo.uri && (
-          <Image
-            source={{ uri: photo.uri }}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="contain"
-            cachePolicy="memory-disk"
-          />
-=======
 import { Modal, View, Pressable, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,7 +52,7 @@ export default function PhotoViewer({ visible, photo, onClose, onDelete, isDelet
               cachePolicy="memory-disk"
             />
           </Animated.View>
->>>>>>> merge-branch
+
         )}
         <Pressable onPress={onClose} className="absolute top-14 right-6 z-50 p-2 bg-black/40 rounded-full">
           <Ionicons name="close" size={32} color="white" />
@@ -87,8 +68,4 @@ export default function PhotoViewer({ visible, photo, onClose, onDelete, isDelet
       </View>
     </Modal>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> merge-branch
