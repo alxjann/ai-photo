@@ -44,7 +44,6 @@ export const reprocessImageController = async (req, res) => {
 
         const { id } = req.params;
 
-        // Get the photo record
         const { data: photo, error: fetchError } = await supabase
             .from('photo')
             .select('id, device_asset_id, user_id, manual_description')
@@ -62,7 +61,6 @@ export const reprocessImageController = async (req, res) => {
 
         const compressedImage = await getCompressedImageBuffer(req.file.buffer);
 
-        // Try AI analysis with one retry
         let parsed;
         for (let attempt = 1; attempt <= 2; attempt++) {
             try {
@@ -77,7 +75,6 @@ export const reprocessImageController = async (req, res) => {
 
         let { literal, descriptive, tags } = parsed;
 
-        // Enrich with ConceptNet
         tags = await enrichTagsWithConceptNet(supabase, tags.toLowerCase());
 
         if (photo.manual_description) {

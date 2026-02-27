@@ -3,7 +3,6 @@ import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 import { enrichTagsWithConceptNet } from './conceptEnrichment.js';
 
-// Phrases that indicate the AI refused or failed to analyze the image
 const AI_REFUSAL_PHRASES = [
     "i'm unable",
     "i am unable",
@@ -45,20 +44,17 @@ const CAPABILITY_RULES = [
 function validateAIResponse(description) {
     const lower = description.toLowerCase();
 
-    // Must have all three sections
     if (!description.includes('[LITERAL]') ||
         !description.includes('[DESCRIPTIVE]') ||
         !description.includes('[TAGS]')) {
         throw new Error('AI_INVALID_RESPONSE: Missing required sections');
     }
 
-    // Must not be a refusal
     const isRefusal = AI_REFUSAL_PHRASES.some(phrase => lower.includes(phrase));
     if (isRefusal) {
         throw new Error('AI_REFUSED: AI could not analyze this image');
     }
 
-    // Sections must have actual content (not just whitespace)
     const literalStart = description.indexOf('[LITERAL]');
     const descriptiveStart = description.indexOf('[DESCRIPTIVE]');
     const tagsStart = description.indexOf('[TAGS]');
@@ -107,7 +103,6 @@ export const processImage = async (user, supabase, image, device_asset_id, manua
 
     if (existing) throw new Error('DUPLICATE_IMAGE');
 
-    // Retry once if AI fails or refuses
     let parsed;
     let lastError;
     for (let attempt = 1; attempt <= 2; attempt++) {
@@ -120,14 +115,12 @@ export const processImage = async (user, supabase, image, device_asset_id, manua
             const isAIFailure = err.message.startsWith('AI_REFUSED') || err.message.startsWith('AI_INVALID');
             if (isAIFailure) {
                 console.warn(`Attempt ${attempt} failed (${err.message})${attempt === 1 ? ', retrying...' : ', giving up'}`);
-                continue; // Let loop exhaust, then fall through to needs_reprocessing save
+                continue;
             }
-            throw err; // Non-AI errors (network, credits) — fail fast
+            throw err;
         }
     }
 
-    // If AI failed after retries, save the photo without embeddings
-    // so it still appears in the library and can be reprocessed later
     if (!parsed) {
         console.warn('AI failed after 2 attempts, saving without embeddings for reprocessing later');
 
@@ -155,7 +148,6 @@ export const processImage = async (user, supabase, image, device_asset_id, manua
 
     let { literal, descriptive, tags } = parsed;
 
-    // Enrich tags with ConceptNet (falls back gracefully if API is down)
     tags = await enrichTagsWithConceptNet(supabase, tags.toLowerCase());
 
     if (manualDescription && manualDescription.trim()) {

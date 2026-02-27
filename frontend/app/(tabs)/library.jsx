@@ -199,6 +199,11 @@ export default function Library() {
                 visible={!!selectedPhoto}
                 photo={selectedPhoto}
                 onClose={() => setSelectedPhoto(null)}
+                onDelete={(deletedId) => {
+                    setPhotos(prev => prev.filter(p => p.id !== deletedId));
+                    allPhotosRef.current = allPhotosRef.current.filter(p => p.id !== deletedId);
+                    setSelectedPhoto(null);
+                }}
             />
 
             <FloatingMenu

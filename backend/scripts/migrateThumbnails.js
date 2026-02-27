@@ -40,5 +40,3 @@ const migrateThumbnails = async () => {
 };
 
 migrateThumbnails();
-
-// js run this script using node backend/scripts/migrateThumbnails.js pag wlng thumbnail_data sa photo table

@@ -10,11 +10,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// middleware
 app.use(cors());
 app.use(express.json());
 
-// routes
 app.use('/api', embed);
 app.use('/api', image);
 app.use('/api', search);

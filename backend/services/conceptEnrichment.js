@@ -1,135 +1,119 @@
-// ConceptNet Enrichment Service
-// Uses the /related endpoint to find semantically related English terms
-// Results are cached in concept_cache table — each concept queried only once
-// Rate limit: 3600 req/hour, 120/min — caching keeps us well within limits
+import { isUnexpected } from "@azure-rest/ai-inference";
+import { aiClient } from '../config/ai.config.js';
 
-const CONCEPTNET_BASE = 'https://api.conceptnet.io';
-
-// Minimum relatedness weight to include a term (0.0 - 1.0)
-// Too low = noise, too high = nothing useful
-const MIN_WEIGHT = 0.5;
-
-// Max tags to inject per concept to avoid tag bloat
 const MAX_TAGS_PER_CONCEPT = 6;
+const TOTAL_ENRICHMENT_TIMEOUT_MS = 3000;
 
-// Terms too vague or common to be useful as tags
-const EXCLUDE_TERMS = new Set([
-    'thing', 'object', 'item', 'entity', 'something', 'anything',
-    'person', 'people', 'someone', 'anyone', 'user', 'human',
-    'good', 'bad', 'nice', 'great', 'many', 'much', 'more', 'very',
-    'make', 'get', 'use', 'do', 'have', 'be', 'go', 'come',
-    'various', 'different', 'other', 'another', 'same', 'new', 'old',
-    'small', 'large', 'big', 'little', 'high', 'low',
+const SKIP_CONCEPTS = new Set([
+    'photograph', 'photo', 'image', 'picture', 'screenshot',
+    'person', 'people', 'selfie', 'portrait', 'group', 'characters',
+    'happy', 'peaceful', 'calm', 'exciting', 'energetic', 'melancholic',
+    'playful', 'funny', 'humor', 'colorful', 'vibrant', 'muted',
+    'indoor', 'outdoor', 'daylight', 'night', 'low-light', 'sunset',
+    'philippines', 'filipino', 'manila',
+    'gaming', 'working', 'studying', 'eating', 'traveling', 'activities',
+    'animals', 'creatures', 'organisms', 'wildlife',
+    'digital-art', 'illustration', 'meme', 'technology', 'cartoon',
+    'green', 'red', 'blue', 'yellow', 'white', 'black', 'brown',
+    'warm-tones', 'cool-tones', 'monochrome',
+    'rural', 'urban', 'safety',
+    'aspin', 'asong-pinoy',
+    'home', 'house', 'building', 'indoor', 'outdoor', 'gate', 'fence', 'yard',
+    'grass', 'lawn', 'field', 'ground', 'soil', 'sand', 'water', 'sky', 'tree', 'plant',
+    'fur', 'coat', 'skin', 'hair', 'tail', 'ears', 'paws', 'claws', 'whiskers',
 ]);
 
-// Simple rate limiter — ensures we don't exceed 1 req/sec average
-let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL_MS = 1100; // slightly over 1 second to be safe
+async function getGPTTags(concept) {
+    try {
+        const response = await aiClient.path('/chat/completions').post({
+            body: {
+                model: 'gpt-4o-mini',
+                messages: [{
+                    role: 'user',
+                    content: `You are a visual tagging assistant. Given a concept, list related tags that describe what it physically IS, what it CAN DO, or what it is MADE OF. Only factual, visual properties — no emotions, no situations, no cultural associations.
 
-async function rateLimitedFetch(url) {
-    const now = Date.now();
-    const timeSinceLast = now - lastRequestTime;
-    if (timeSinceLast < MIN_REQUEST_INTERVAL_MS) {
-        await new Promise(r => setTimeout(r, MIN_REQUEST_INTERVAL_MS - timeSinceLast));
-    }
-    lastRequestTime = Date.now();
-    return fetch(url);
-}
+RULES:
+- Return ONLY comma-separated single words or short hyphenated terms
+- No sentences, no explanations
+- Maximum ${MAX_TAGS_PER_CONCEPT} tags
+- Only physical, factual, visual properties
 
-async function getRelatedTerms(concept) {
-    const encoded = encodeURIComponent(concept.toLowerCase().replace(/[\s-]+/g, '_'));
-    const url = `${CONCEPTNET_BASE}/related/c/en/${encoded}?filter=/c/en`;
+EXAMPLES:
+eagle → bird, raptor, wings, feathers, beak, talons
+notebook → paper, pages, lined, binding, handwriting, writing
+beach → sand, waves, ocean, shore, coastal, saltwater
+chicken → poultry, feathers, beak, wings, bird, egg-laying
+laptop → screen, keyboard, portable, electronic, computer, battery
+soup → liquid, bowl, broth, hot, steam, ladle
 
-    const res = await rateLimitedFetch(url);
-    if (!res.ok) {
-        if (res.status === 429) throw new Error('RATE_LIMITED');
-        throw new Error(`ConceptNet fetch failed: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const related = data.related || [];
-
-    return related
-        .filter(item => {
-            // Must meet minimum weight threshold
-            if (item.weight < MIN_WEIGHT) return false;
-
-            // Extract term from URI like /c/en/flying
-            const match = item['@id']?.match(/\/c\/en\/([^/]+)/);
-            if (!match) return false;
-
-            const term = match[1].replace(/_/g, '-').toLowerCase();
-
-            // Skip the concept itself
-            if (term === concept) return false;
-
-            // Skip excluded terms
-            if (EXCLUDE_TERMS.has(term)) return false;
-
-            // Only latin characters, no numbers-only terms
-            if (!/^[a-z][a-z0-9-]*$/.test(term)) return false;
-
-            // Skip very short terms
-            if (term.length < 3) return false;
-
-            return true;
-        })
-        .slice(0, MAX_TAGS_PER_CONCEPT)
-        .map(item => {
-            const match = item['@id'].match(/\/c\/en\/([^/]+)/);
-            return match[1].replace(/_/g, '-').toLowerCase();
+CONCEPT: ${concept}
+TAGS:`
+                }],
+                max_tokens: 60,
+            }
         });
+
+        if (isUnexpected(response)) throw new Error('GPT failed');
+
+        const raw = response.body.choices[0].message.content?.trim();
+        if (!raw) throw new Error('Empty response');
+
+        return raw
+            .split(',')
+            .map(t => t.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').trim())
+            .filter(t => t.length >= 3 && t !== concept)
+            .slice(0, MAX_TAGS_PER_CONCEPT);
+
+    } catch (err) {
+        console.warn(`GPT enrichment failed for "${concept}":`, err.message);
+        return [];
+    }
 }
 
-// Main export — enriches a tag string using ConceptNet
-// Checks cache first, queries API if not cached, stores result
 export const enrichTagsWithConceptNet = async (supabase, tags) => {
     const tagList = tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
     const enriched = new Set(tagList);
 
-    for (const concept of tagList) {
-        // Skip very short tags, numbers, or already-compound tags
-        if (concept.length < 3 || /^\d+$/.test(concept)) continue;
+    try {
+        await Promise.race([
+            Promise.all(tagList.map(async (concept) => {
+                if (concept.length < 3 || /^\d+$/.test(concept)) return;
+                if (SKIP_CONCEPTS.has(concept)) return;
 
-        try {
-            // Check cache first
-            const { data: cached } = await supabase
-                .from('concept_cache')
-                .select('enriched_tags')
-                .eq('concept', concept)
-                .maybeSingle();
+                try {
+                    const { data: cached } = await supabase
+                        .from('concept_cache')
+                        .select('enriched_tags')
+                        .eq('concept', concept)
+                        .maybeSingle();
 
-            let conceptTags = [];
+                    let conceptTags = [];
 
-            if (cached) {
-                // Cache hit
-                conceptTags = cached.enriched_tags || [];
-                console.log(`ConceptNet cache hit for "${concept}":`, conceptTags);
-            } else {
-                // Cache miss — query API
-                conceptTags = await getRelatedTerms(concept);
-                console.log(`ConceptNet queried for "${concept}":`, conceptTags);
+                    if (cached) {
+                        conceptTags = cached.enriched_tags || [];
+                        console.log(`Enrichment cache hit for "${concept}":`, conceptTags);
+                    } else {
+                        conceptTags = await getGPTTags(concept);
+                        console.log(`GPT enrichment for "${concept}":`, conceptTags);
 
-                // Store result (even empty arrays get cached so we don't re-query)
-                await supabase
-                    .from('concept_cache')
-                    .upsert({
-                        concept,
-                        enriched_tags: conceptTags,
-                        queried_at: new Date().toISOString(),
-                    }, { onConflict: 'concept' });
-            }
+                        supabase.from('concept_cache').upsert({
+                            concept,
+                            enriched_tags: conceptTags,
+                            queried_at: new Date().toISOString(),
+                        }, { onConflict: 'concept' }).then(() => {}).catch(() => {});
+                    }
 
-            conceptTags.forEach(t => enriched.add(t));
-
-        } catch (err) {
-            if (err.message === 'RATE_LIMITED') {
-                console.warn('ConceptNet rate limit hit — skipping remaining concepts');
-                break; // Stop querying but don't fail the upload
-            }
-            // Any other error — skip this concept silently
-            console.warn(`ConceptNet enrichment skipped for "${concept}":`, err.message);
-        }
+                    conceptTags.forEach(t => enriched.add(t));
+                } catch (err) {
+                    console.warn(`Enrichment skipped for "${concept}":`, err.message);
+                }
+            })),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('enrichment timeout')), TOTAL_ENRICHMENT_TIMEOUT_MS)
+            )
+        ]);
+    } catch (err) {
+        console.warn('Enrichment timed out or failed:', err.message);
     }
 
     return Array.from(enriched).join(', ');

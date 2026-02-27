@@ -20,7 +20,7 @@ FORMAT:
 <2-3 sentences describing exactly what you see — be highly specific about colors, textures, ingredients>
 
 [DESCRIPTIVE]
-<2-3 sentences describing context, setting, mood, or significance — mention the dish name explicitly. For animals, include behavioral traits and physical capabilities (e.g. can fly, climbs trees, runs fast, swims, has four legs, nocturnal, etc.)>
+<2-3 sentences describing context, setting, mood, or significance — mention the dish name explicitly>
 
 [TAGS]
 <comma-separated keywords>
@@ -30,13 +30,13 @@ TAG CATEGORIES (include all relevant ones):
 - People: person, people, selfie, portrait, group
 - Characters: name specific game/anime/film characters (e.g., kimmy, luffy, naruto, goku)
 - Franchise/IP: mobile-legends, genshin-impact, valorant, one-piece, naruto, pokemon
-- Animals: ALWAYS include the tag animal for any living creature that is not a person. Then add specific tags: cat, dog, bird, fish, insect, reptile, etc. Name the exact species if known (e.g., spider-monkey, scarlet-macaw, labrador)
-- Food: Tag ONLY the dish actually shown — never add other dish names as tags just because they share ingredients. 
-  Example: bicol-express should NOT also be tagged pork-adobo just because both contain pork.
+- Animals: ALWAYS include "animal" tag for ANY creature, PLUS the specific species (e.g. animal, clownfish; animal, eagle; animal, dog, labrador)
+- Food: Tag ONLY the dish actually shown — never add other dish names as tags just because they share ingredients.
   Name the specific dish: pork-adobo, beef-sinigang, bicol-express, chicken-curry, lechon, kare-kare, pinakbet, etc.
 - Nature: mountain, beach, forest, waterfall, sunset, ocean
 - Landmarks: name if recognizable (e.g., eiffel-tower, rizal-park, tokyo-tower)
 - Setting: outdoor, indoor, urban, rural, beach, city, nature, restaurant, home
+- Background objects: ALWAYS tag significant background elements (e.g. gate, fence, wall, door, window, tree, car, table, chair)
 - Lighting: sunset, golden-hour, night, daylight, low-light
 - Activities: gaming, eating, working, studying, exercising, socializing, traveling
 - Mood: happy, peaceful, energetic, calm, exciting, melancholic
@@ -44,6 +44,9 @@ TAG CATEGORIES (include all relevant ones):
 - Filipino context: philippines, manila, filipino-food, jeepney, festival`;
 
 export const describeImage = async (imageBuffer) => {
+    const start = Date.now();
+    console.log('describeImage: sending request to GPT...');
+
     const response = await aiClient.path("/chat/completions").post({
         body: {
             model: gptModel,
@@ -72,5 +75,9 @@ export const describeImage = async (imageBuffer) => {
 
     const content = response.body.choices[0].message.content;
     if (!content) throw new Error('Empty response from AI');
+
+    console.log(`describeImage: GPT responded in ${Date.now() - start}ms`);
+    console.log('describeImage response:\n', content);
+
     return content;
 };
