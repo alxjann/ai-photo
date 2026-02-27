@@ -2,6 +2,7 @@ import { isUnexpected } from "@azure-rest/ai-inference";
 import { aiClient } from '../config/ai.config.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 
+//search prompt
 async function rerankWithGPT(query, candidates) {
     if (!candidates || candidates.length === 0) return [];
 
@@ -19,21 +20,26 @@ async function rerankWithGPT(query, candidates) {
 
 Query: "${query}"
 
-Below are photo candidates retrieved from a search. Return ONLY the numbers of photos that genuinely match what the user is looking for. Be strict — only include photos that clearly and directly match the query.
+Below are photo candidates. Return the numbers of photos that match the query.
+
+RULES:
+- Be LENIENT with vague or general queries (e.g. "dog", "my pet dog") — include any photo that could reasonably match
+- Be STRICT with specific queries (e.g. "dog behind gate", "valorant scoreboard") — only include exact matches
+- If the query mentions a person ("me", "my", "I") but the photo has no person, still include it if the subject matches
+- Prefer returning too many results over too few
 
 ${candidateList}
 
-Reply with ONLY a comma-separated list of numbers (e.g. "1,3,5") or "none" if nothing matches.
+Reply with ONLY a comma-separated list of numbers (e.g. "1,3,5") or "none" if truly nothing matches.
 Numbers only, no explanation.`
                 }],
                 max_tokens: 60,
             }
         });
 
-        if (isUnexpected(response)) throw new Error('GPT rerank failed');
+        if (isUnexpected(response)) throw new Error('rerank failed');
 
         const raw = response.body.choices[0].message.content?.trim();
-        console.log(`Rerank: "${query}" → kept: ${raw}`);
 
         if (!raw || raw.toLowerCase() === 'none') return [];
 
@@ -46,13 +52,13 @@ Numbers only, no explanation.`
         return candidates.filter((_, i) => keepIndices.has(i));
 
     } catch (err) {
-        console.warn('Rerank failed, returning all candidates:', err.message);
+        console.warn(' fail, returning all candidates:', err.message);
         return candidates;
     }
 }
 
-// search
 
+// main search function
 export const searchImage = async (user, supabase, query) => {
 
     if (!query || query.trim() === '') {
@@ -68,9 +74,8 @@ export const searchImage = async (user, supabase, query) => {
 
     const normalizedQuery = query.trim();
 
-    console.log(`Searching: "${normalizedQuery}"`);
     const queryEmbedding = await generateEmbedding(normalizedQuery);
-
+    // adjust search prompt weights
     const { data, error } = await supabase.rpc('hybrid_search_photos', {
         query_text: normalizedQuery,
         query_embedding: queryEmbedding,
@@ -89,7 +94,6 @@ export const searchImage = async (user, supabase, query) => {
     }
 
     const reranked = await rerankWithGPT(normalizedQuery, data);
-    console.log(`After rerank: ${reranked.length} results`);
 
     return { results: reranked, count: reranked.length };
 };
