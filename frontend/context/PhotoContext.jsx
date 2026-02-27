@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback } from 'react';
-import { addPhotoToCache } from 'service/cacheService.js';
 
 const PhotoContext = createContext();
 
@@ -8,7 +7,6 @@ export const PhotoProvider = ({ children }) => {
 
   const appendPhoto = useCallback((newPhoto) => {
     setPhotos((prev) => [...prev, newPhoto]);
-    addPhotoToCache(newPhoto);
   }, []);
 
   return (

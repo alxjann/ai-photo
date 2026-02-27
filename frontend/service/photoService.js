@@ -82,7 +82,7 @@ export const processPhotos = async (photos) => {
 
   try {
     const api = (photos.length === 1) ? `${API_URL}/api/image` : `${API_URL}/api/images/batch`;
-    
+
     const response = await fetch(api, {
         method: 'POST',
         body: formData,
@@ -93,10 +93,17 @@ export const processPhotos = async (photos) => {
     });
 
     const data = await response.json();
-    //console.log('POST RESPONSE:', data)
-    //return result.assets[0].uri;
+
+    if (!response.ok) {
+      const err = new Error(data.error || 'Failed to process photos');
+      err.response = data;
+      throw err;
+    }
+
+    return data;
   } catch (error) {
     console.error("Processing photo failed", error);
+    throw error;
   }
 }
 

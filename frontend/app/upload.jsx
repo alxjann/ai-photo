@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { processPhotos, takePhoto } from 'service/photoService';
 import { usePhotoContext } from 'context/PhotoContext';
+import { addPhotoToCache } from 'service/cacheService';
 
 export default function Upload() {
   const router = useRouter();
@@ -17,16 +18,32 @@ export default function Upload() {
     });
 
     if (!result.canceled) {
-    	await processPhotos(result.assets)
+      try {
+        const res = await processPhotos(result.assets);
 
-			try {
-				result.assets.forEach((asset) => {
-					const id = asset.assetId || asset.id;
-					appendPhoto({ photo_id: id, uri: asset.uri });
-				});
-			} catch (e) {
-				console.error('Appending photos failed', e);
-			}
+        if (!res) {
+          console.error('Processing returned no response', res);
+          return;
+        }
+
+        // For batch API, backend returns `failed` count when something went wrong
+        if (res.failed && res.failed > 0) {
+          console.error('Some images failed to process', res);
+          return;
+        }
+
+        // Only append locally when processing succeeded
+        console.log('Result', result.assets)
+        const newPhotos = result.assets.map((asset) => ({
+          photo_id: asset.assetId || asset.id,
+          uri: asset.uri,
+        }));
+
+        newPhotos.forEach((photo) => appendPhoto(photo));
+        await addPhotoToCache(newPhotos);
+      } catch (e) {
+        console.error('Processing or appending photos failed', e);
+      }
     }
   };
 

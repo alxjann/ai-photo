@@ -28,11 +28,30 @@ export default function Library() {
       if (status !== 'granted') return;
     }
 
-    //check cache first
+    // check cache first
     const cached = await getCachedPhotos();
-    if (cached && cached.length) {
-      const photosWithUris = await Promise.all(
-        cached.map(async (photo) => {
+
+    if (cached && cached.length > 0) {
+      // show photos from cache immediately
+      const sortedCached = cached
+        .filter(photo => photo && photo.photo_id)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      setPhotos(sortedCached);
+
+      // verify if nasa db yung photos (photo_id)
+      const dbPhotos = await getPhotos();
+      const dbPhotoIds = new Set(dbPhotos.map(p => p.photo_id));
+      const cachedIds = new Set(cached.map(p => p.photo_id));
+
+      // remove photos that are no longer in the database
+      const validCached = cached.filter(p => dbPhotoIds.has(p.photo_id));
+
+      // check for photos with photo_id in database but not in cache
+      const missingFromCache = dbPhotos.filter(p => !cachedIds.has(p.photo_id));
+
+      // fetch URIs for missing photos
+      const missingWithUris = await Promise.all(
+        missingFromCache.map(async (photo) => {
           if (photo.uri) return photo;
           try {
             const uri = await getPhotoLocalURI(photo.photo_id);
@@ -44,14 +63,17 @@ export default function Library() {
         })
       );
 
-      const sortedCached = photosWithUris
-        .filter(Boolean)
+      // merge valid cached + missing photos
+      const merged = [...validCached, ...missingWithUris]
+        .filter(photo => photo && photo.photo_id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      setPhotos(sortedCached);
+
+      setPhotos(merged);
+      await setCachedPhotos(merged);
       return;
     }
 
-    //fallback to supabase
+    // fallback to supabase (if no photos in cache)
     const assets = await getPhotos();
     const photosWithUris = await Promise.all(
       assets.map(async (photo) => {
@@ -66,7 +88,6 @@ export default function Library() {
       })
     );
 
-    //cache the photos
     const sorted = photosWithUris
       .filter(Boolean)
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -74,7 +95,7 @@ export default function Library() {
     await setCachedPhotos(sorted);
   };
   
-  useEffect(() => { handleGetPhotos(); }, []);
+  //useEffect(() => { handleGetPhotos(); }, []);
 
   useEffect(() => {
     if (!isSearching) {
@@ -158,7 +179,6 @@ export default function Library() {
     ({ item }) => (
       <>
       <PhotoItem
-        photoId={item.photo_id}
         localUri={item.uri ?? null}
         numColumns={numColumns}
         onPress={handlePressPhoto}
