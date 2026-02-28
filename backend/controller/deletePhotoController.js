@@ -8,17 +8,17 @@ export const deletePhotoController = async (req, res) => {
         if (!supabase) return;
 
         const { data: {user} } = await supabase.auth.getUser();
-        const { photoId } = req.params;
+        const { assetId } = req.params;
 
-        if (!photoId) {
+        if (!assetId) {
             return res.status(400).json({ error: 'Photo ID is required' });
         }
 
-        await deletePhoto(user, supabase, photoId);
+        await deletePhoto(user, supabase, assetId);
 
         res.status(200).json({
             message: 'Photo deleted successfully',
-            photo_id: photoId
+            device_asset_id: assetId
         });
 
     } catch (error) {
