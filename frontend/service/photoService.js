@@ -16,13 +16,8 @@ export const takePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({ quality: 1 });
     if (result.canceled) return;
 
-    const savedAsset = await MediaLibrary.createAssetAsync(result.assets[0].uri);
+    const photo = await MediaLibrary.createAssetAsync(result.assets[0].uri);
     const token = await getSession();
-e
-    const deviceAssetId =
-        Platform.OS === 'ios'
-            ? savedAsset.id
-            : savedAsset.filename;
 
     const formData = new FormData();
     formData.append('image', {
@@ -30,7 +25,7 @@ e
         name: 'photo.jpg',
         type: 'image/jpeg',
     });
-    formData.append('device_asset_id', deviceAssetId);
+    formData.append('device_asset_id', photo.id);
 
     try {
         const response = await fetch(`${API_URL}/api/image`, {
@@ -49,50 +44,21 @@ e
     }
 };
 
-// ios
-const resolveAsset = async (photo) => {
-    if (Platform.OS === 'ios') {
-        return {
-            ...photo,
-            resolvedAssetId: photo.assetId || photo.uri,
-            resolvedUri: photo.uri,
-        };
-    }
-
-    // android
-    if (photo.assetId) {
-        try {
-            const info = await MediaLibrary.getAssetInfoAsync(photo.assetId);
-            return {
-                ...photo,
-                resolvedAssetId: info.filename || photo.assetId,
-                resolvedUri: info.localUri || info.uri || photo.uri,
-            };
-        } catch (e) {
-            console.warn('getAssetInfoAsync failed, falling back to URI filename:', e.message);
-        }
-    }
-
-    const filename = photo.uri.split('/').pop();
-    return {
-        ...photo,
-        resolvedAssetId: filename,
-        resolvedUri: photo.uri,
-    };
-};
-
 export const processPhotos = async (photos) => {
     const token = await getSession();
 
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
-    const assets = await Promise.all(photos.map(resolveAsset));
+    const assets = photos.map((photo) => {
+        const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
+        return { ...photo, resolvedAssetId: assetId };
+    });
 
     const formData = new FormData();
 
     if (assets.length === 1) {
         formData.append('image', {
-            uri: assets[0].resolvedUri,
+            uri: assets[0].uri,
             name: 'photo.jpg',
             type: 'image/jpeg',
         });
@@ -100,7 +66,7 @@ export const processPhotos = async (photos) => {
     } else {
         assets.forEach((photo, index) => {
             formData.append('images', {
-                uri: photo.resolvedUri,
+                uri: photo.uri,
                 name: `photo_${index}.jpg`,
                 type: 'image/jpeg',
             });
@@ -132,7 +98,7 @@ export const processPhotos = async (photos) => {
 
     if (assets.length === 1) {
         return {
-            added: [{ id: data.photo?.id, device_asset_id: assets[0].resolvedAssetId, uri: assets[0].resolvedUri }],
+            added: [{ id: data.photo?.id, uri: assets[0].uri }],
             duplicates: 0
         };
     }
@@ -140,8 +106,7 @@ export const processPhotos = async (photos) => {
     const successfulResults = data.results || [];
     const added = successfulResults.map(r => ({
         id: r.photo?.id,
-        device_asset_id: assets[r.index].resolvedAssetId,
-        uri: assets[r.index].resolvedUri,
+        uri: assets[r.index].uri,
     }));
     return { added, duplicates: assets.length - added.length };
 };
@@ -172,16 +137,22 @@ export const getPhotos = async (query = '') => {
     }
 };
 
-export const getPhotoLocalURI = async (photoId) => {
-    if (
-        photoId &&
-        (photoId.startsWith('file://') ||
-            photoId.startsWith('content://') ||
-            photoId.startsWith('ph://'))
-    ) {
-        return photoId;
+export const deletePhoto = async (photoId) => {
+    try {
+        const token = await getSession();
+        const response = await fetch(`${API_URL}/api/photo/${photoId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error('Delete failed');
+        return true;
+    } catch (error) {
+        console.error('deletePhoto error:', error.message);
+        throw error;
     }
+};
 
+export const getPhotoLocalURI = async (photoId) => {
     try {
         const assetInfo = await MediaLibrary.getAssetInfoAsync(photoId);
         return assetInfo.localUri || assetInfo.uri;
