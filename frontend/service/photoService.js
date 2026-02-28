@@ -151,3 +151,24 @@ export const getPhotoLocalURI = async (photoId) => {
         throw error;
     }
 };
+
+export const deletePhoto = async (photoId) => {
+  if (!photoId) 
+    throw new Error('Photo ID is required');
+
+  const token = await getSession();
+  const encodedPhotoId = encodeURIComponent(photoId); //since photoId contains '/', we need to encode it
+  const response = await fetch(`${API_URL}/api/photo/${encodedPhotoId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to delete photo');
+  }
+
+  return data;
+}
