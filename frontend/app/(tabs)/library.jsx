@@ -57,8 +57,19 @@ export default function Library() {
             const uri = await getPhotoLocalURI(photo.device_asset_id);
             return { ...photo, uri };
           } catch (error) {
-            console.error(`Error fetching URI for ${photo.device_asset_id}:`, error);
-            return photo;
+            // verify if na delete ba talaga yung photo
+            const assetInfo = await MediaLibrary.getAssetInfoAsync(photo.device_asset_id);
+            if (assetInfo) {
+                // asset still exists, uri fetch failed for a different reason
+                console.log(`Asset ${photo.device_asset_id} still exists, skipping deletion`);
+                return { ...photo, uri };
+            } else {
+                console.log(`Asset ${photo.device_asset_id} confirmed deleted`);
+                //delete photo from cache and database
+                await deletePhoto(photo.device_asset_id); 
+                await removePhotoFromCache(photo.device_asset_id);
+                return null;
+            }
           }
         })
       );
@@ -82,8 +93,19 @@ export default function Library() {
           const uri = await getPhotoLocalURI(photo.device_asset_id);
           return { ...photo, uri };
         } catch (error) {
-          console.error(`Error fetching URI for ${photo.device_asset_id}:`, error);
-          return photo;
+          // verify if na delete ba talaga yung photo
+          const assetInfo = await MediaLibrary.getAssetInfoAsync(photo.device_asset_id);
+            if (assetInfo) {
+                // asset still exists, uri fetch failed for a different reason
+                console.log(`Asset ${photo.device_asset_id} still exists, skipping deletion`);
+                return { ...photo, uri };
+            } else {
+                console.log(`Asset ${photo.device_asset_id} confirmed deleted`);
+                //delete photo from cache and database
+                await deletePhoto(photo.device_asset_id); 
+                await removePhotoFromCache(photo.device_asset_id);
+                return null;
+            }
         }
       })
     );
