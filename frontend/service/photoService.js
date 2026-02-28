@@ -59,7 +59,6 @@ export const processPhotos = async (photos) => {
 
     const assets = photos.map((photo) => {
         const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
-        const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
         return { ...photo, resolvedAssetId: assetId };
     });
 
@@ -151,21 +150,6 @@ export const getPhotos = async (query = '') => {
         }
     } catch (error) {
         console.error("getPhotos Service Error:", error.message);
-        throw error;
-    }
-};
-
-export const deletePhoto = async (photoId) => {
-    try {
-        const token = await getSession();
-        const response = await fetch(`${API_URL}/api/photo/${photoId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Delete failed');
-        return true;
-    } catch (error) {
-        console.error('deletePhoto error:', error.message);
         throw error;
     }
 };
