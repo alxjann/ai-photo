@@ -30,7 +30,7 @@ export const takePhoto = async () => {
       name: 'photo.jpg',
       type: 'image/jpeg',
     });
-    formData.append('photo_id', photo.id);
+    formData.append('device_asset_id', photo.id);
 
     try {
       const response = await fetch(`${API_URL}/api/image`, {
@@ -43,7 +43,7 @@ export const takePhoto = async () => {
       });
 
       const data = await response.json();
-      return { photo_id: photo.id, uri: result.assets[0].uri };
+      return { device_asset_id: photo.id, uri: result.assets[0].uri };
     } catch (error) {
       console.error("Upload failed", error);
       throw error;
@@ -66,7 +66,7 @@ export const processPhotos = async (photos) => {
         name: 'photo.jpg',
         type: 'image/jpeg',
     });
-    formData.append('photo_id', photos[0].assetId);
+    formData.append('device_asset_id', photos[0].assetId);
   } else {
     photos.forEach((photo, index) => {
       console.log('PHOTO URI:', photo.uri)
@@ -75,7 +75,7 @@ export const processPhotos = async (photos) => {
         name: `photo_${index}.jpg`,
         type: 'image/jpeg',
       });
-      formData.append('photo_id', photo.assetId);
+      formData.append('device_asset_id', photo.assetId);
       console.log(photo.assetId)
     });
   }

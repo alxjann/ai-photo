@@ -1,12 +1,12 @@
-export const deletePhoto = async (user, supabase, photoId) => {
-    if (!photoId) throw new Error('Photo ID is required');
+export const deletePhoto = async (user, supabase, assetId) => {
+    if (!assetId) throw new Error('Photo ID is required');
 
-    console.log('Deleting photo:', photoId);
+    console.log('Deleting photo:', assetId);
 
     const { data, error } = await supabase
         .from('photo')
         .delete()
-        .eq('photo_id', photoId)
+        .eq('device_asset_id', assetId)
         .eq('user_id', user.id);
 
     if (error) {
@@ -14,6 +14,6 @@ export const deletePhoto = async (user, supabase, photoId) => {
         throw error;
     }
 
-    console.log('Photo deleted successfully:', photoId);
+    console.log('Photo deleted successfully:', assetId);
     return data;
 };

@@ -34,30 +34,30 @@ export default function Library() {
     if (cached && cached.length > 0) {
       // show photos from cache immediately
       const sortedCached = cached
-        .filter(photo => photo && photo.photo_id)
+        .filter(photo => photo && photo.device_asset_id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setPhotos(sortedCached);
 
       // verify if nasa db yung photos (photo_id)
       const dbPhotos = await getPhotos();
-      const dbPhotoIds = new Set(dbPhotos.map(p => p.photo_id));
-      const cachedIds = new Set(cached.map(p => p.photo_id));
+      const dbPhotoIds = new Set(dbPhotos.map(p => p.device_asset_id));
+      const cachedIds = new Set(cached.map(p => p.device_asset_id));
 
       // remove photos that are no longer in the database
-      const validCached = cached.filter(p => dbPhotoIds.has(p.photo_id));
+      const validCached = cached.filter(p => dbPhotoIds.has(p.device_asset_id));
 
       // check for photos with photo_id in database but not in cache
-      const missingFromCache = dbPhotos.filter(p => !cachedIds.has(p.photo_id));
+      const missingFromCache = dbPhotos.filter(p => !cachedIds.has(p.device_asset_id));
 
       // fetch URIs for missing photos
       const missingWithUris = await Promise.all(
         missingFromCache.map(async (photo) => {
           if (photo.uri) return photo;
           try {
-            const uri = await getPhotoLocalURI(photo.photo_id);
+            const uri = await getPhotoLocalURI(photo.device_asset_id);
             return { ...photo, uri };
           } catch (error) {
-            console.error(`Error fetching URI for ${photo.photo_id}:`, error);
+            console.error(`Error fetching URI for ${photo.device_asset_id}:`, error);
             return photo;
           }
         })
@@ -65,7 +65,7 @@ export default function Library() {
 
       // merge valid cached + missing photos
       const merged = [...validCached, ...missingWithUris]
-        .filter(photo => photo && photo.photo_id)
+        .filter(photo => photo && photo.device_asset_id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
       setPhotos(merged);
@@ -79,10 +79,10 @@ export default function Library() {
       assets.map(async (photo) => {
         if (photo.uri) return photo;
         try {
-          const uri = await getPhotoLocalURI(photo.photo_id);
+          const uri = await getPhotoLocalURI(photo.device_asset_id);
           return { ...photo, uri };
         } catch (error) {
-          console.error(`Error fetching URI for ${photo.photo_id}:`, error);
+          console.error(`Error fetching URI for ${photo.device_asset_id}:`, error);
           return photo;
         }
       })
@@ -115,10 +115,10 @@ export default function Library() {
         assets.map(async (photo) => {
           if (photo.uri) return photo;
           try {
-            const uri = await getPhotoLocalURI(photo.photo_id);
+            const uri = await getPhotoLocalURI(photo.device_asset_id);
             return { ...photo, uri };
           } catch (error) {
-            console.error(`Error fetching URI for ${photo.photo_id}:`, error);
+            console.error(`Error fetching URI for ${photo.device_asset_id}:`, error);
             return photo;
           }
         })
@@ -134,20 +134,20 @@ export default function Library() {
   };
 
   const handlePressPhoto = useCallback((item) => {
-    console.log('Photo pressed:', item.item.photo_id);
+    console.log('Photo pressed:', item.item.device_asset_id);
     setSelectedPhoto(item);
   }, []);
 
   const handleDeleteSelectedPhoto = useCallback(async () => {
-    if (!selectedPhoto?.item?.photo_id || isDeletingPhoto) return;
+    if (!selectedPhoto?.item?.device_asset_id || isDeletingPhoto) return;
 
     try {
       setIsDeletingPhoto(true);
-      const deletedPhotoId = selectedPhoto.item.photo_id;
+      const deletedPhotoId = selectedPhoto.item.device_asset_id;
 
       await deletePhoto(deletedPhotoId);
       setPhotos((prev) =>
-        prev.filter((photo) => photo.photo_id !== deletedPhotoId)
+        prev.filter((photo) => photo.device_asset_id !== deletedPhotoId)
       );
       await removePhotoFromCache(deletedPhotoId);
       setSelectedPhoto(null);
@@ -246,7 +246,7 @@ export default function Library() {
       <FlatList
         data={photos}
         numColumns={numColumns}
-        keyExtractor={(item) => item.photo_id}
+        keyExtractor={(item) => item.device_asset_id}
         contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2 }}
         showsVerticalScrollIndicator={false}
         renderItem={renderPhotoItem}

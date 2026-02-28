@@ -12,7 +12,7 @@ export const batchProcessImagesController = async(req, res) => {
         if (!req.files || req.files.length === 0) 
             return res.status(400).json({ error: 'No image files provided' });
 
-        const { results, errors } = await batchProcessImages(user, supabase, req.files, req.body.photo_id);
+        const { results, errors } = await batchProcessImages(user, supabase, req.files, req.body.device_asset_id);
         res.status(200).json({
             message: 'Batch processing complete',
             imageCount: req.files.length,

@@ -35,7 +35,7 @@ export default function Upload() {
         // Only append locally when processing succeeded
         console.log('Result', result.assets)
         const newPhotos = result.assets.map((asset) => ({
-          photo_id: asset.assetId || asset.id,
+          device_asset_id: asset.assetId || asset.id,
           uri: asset.uri,
         }));
 

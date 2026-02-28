@@ -2,7 +2,7 @@ import { getCompressedImageBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 
-export const processImage = async (user, supabase, image, photo_id, manualDescription = null) => {
+export const processImage = async (user, supabase, image, device_asset_id, manualDescription = null) => {
     const start = Date.now();
     if (!user || !user.id) throw new Error('Invalid user object or missing user.id');
     const compressedImage = await getCompressedImageBuffer(image);
@@ -35,7 +35,7 @@ export const processImage = async (user, supabase, image, photo_id, manualDescri
         .from('photo')
         .insert({
             user_id: user.id,
-            photo_id: photo_id, 
+            device_asset_id: device_asset_id, 
             descriptive,
             literal,
             tags,
