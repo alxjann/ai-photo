@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { getSession } from './auth/authService';
@@ -15,8 +16,13 @@ export const takePhoto = async () => {
     const result = await ImagePicker.launchCameraAsync({ quality: 1 });
     if (result.canceled) return;
 
-    const photo = await MediaLibrary.createAssetAsync(result.assets[0].uri);
+    const savedAsset = await MediaLibrary.createAssetAsync(result.assets[0].uri);
     const token = await getSession();
+e
+    const deviceAssetId =
+        Platform.OS === 'ios'
+            ? savedAsset.id
+            : savedAsset.filename;
 
     const formData = new FormData();
     formData.append('image', {
@@ -24,7 +30,7 @@ export const takePhoto = async () => {
         name: 'photo.jpg',
         type: 'image/jpeg',
     });
-    formData.append('device_asset_id', photo.id);
+    formData.append('device_asset_id', deviceAssetId);
 
     try {
         const response = await fetch(`${API_URL}/api/image`, {
@@ -43,33 +49,50 @@ export const takePhoto = async () => {
     }
 };
 
+// ios
+const resolveAsset = async (photo) => {
+    if (Platform.OS === 'ios') {
+        return {
+            ...photo,
+            resolvedAssetId: photo.assetId || photo.uri,
+            resolvedUri: photo.uri,
+        };
+    }
+
+    // android
+    if (photo.assetId) {
+        try {
+            const info = await MediaLibrary.getAssetInfoAsync(photo.assetId);
+            return {
+                ...photo,
+                resolvedAssetId: info.filename || photo.assetId,
+                resolvedUri: info.localUri || info.uri || photo.uri,
+            };
+        } catch (e) {
+            console.warn('getAssetInfoAsync failed, falling back to URI filename:', e.message);
+        }
+    }
+
+    const filename = photo.uri.split('/').pop();
+    return {
+        ...photo,
+        resolvedAssetId: filename,
+        resolvedUri: photo.uri,
+    };
+};
+
 export const processPhotos = async (photos) => {
     const token = await getSession();
 
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
-    const assets = await Promise.all(photos.map(async (photo) => {
-        if (photo.assetId) {
-            return { ...photo, resolvedAssetId: photo.assetId, resolvedUri: photo.uri };
-        }
-
-        try {
-            const savedAsset = await MediaLibrary.createAssetAsync(photo.uri);
-            const info = await MediaLibrary.getAssetInfoAsync(savedAsset.id);
-            const permanentUri = info.localUri || info.uri;
-            console.log('Android asset ID:', savedAsset.id, permanentUri);
-            return { ...photo, resolvedAssetId: savedAsset.id, resolvedUri: permanentUri };
-        } catch (e) {
-            console.warn('createAssetAsync failed:', e.message);
-            return { ...photo, resolvedAssetId: photo.uri, resolvedUri: photo.uri };
-        }
-    }));
+    const assets = await Promise.all(photos.map(resolveAsset));
 
     const formData = new FormData();
 
     if (assets.length === 1) {
         formData.append('image', {
-            uri: assets[0].uri, 
+            uri: assets[0].resolvedUri,
             name: 'photo.jpg',
             type: 'image/jpeg',
         });
@@ -77,7 +100,7 @@ export const processPhotos = async (photos) => {
     } else {
         assets.forEach((photo, index) => {
             formData.append('images', {
-                uri: photo.uri, 
+                uri: photo.resolvedUri,
                 name: `photo_${index}.jpg`,
                 type: 'image/jpeg',
             });
@@ -109,7 +132,7 @@ export const processPhotos = async (photos) => {
 
     if (assets.length === 1) {
         return {
-            added: [{ id: data.photo?.id, device_asset_id: assets[0].resolvedAssetId, uri: assets[0].resolvedUri || assets[0].uri }],
+            added: [{ id: data.photo?.id, device_asset_id: assets[0].resolvedAssetId, uri: assets[0].resolvedUri }],
             duplicates: 0
         };
     }
@@ -118,7 +141,7 @@ export const processPhotos = async (photos) => {
     const added = successfulResults.map(r => ({
         id: r.photo?.id,
         device_asset_id: assets[r.index].resolvedAssetId,
-        uri: assets[r.index].resolvedUri || assets[r.index].uri,
+        uri: assets[r.index].resolvedUri,
     }));
     return { added, duplicates: assets.length - added.length };
 };
@@ -150,25 +173,13 @@ export const getPhotos = async (query = '') => {
 };
 
 export const getPhotoLocalURI = async (photoId) => {
-    if (photoId && (photoId.startsWith('file://') || photoId.startsWith('content://') || photoId.startsWith('ph://'))) {
+    if (
+        photoId &&
+        (photoId.startsWith('file://') ||
+            photoId.startsWith('content://') ||
+            photoId.startsWith('ph://'))
+    ) {
         return photoId;
-    }
-
-    if (photoId && photoId.includes('.')) {
-        try {
-            const { assets } = await MediaLibrary.getAssetsAsync({
-                mediaType: MediaLibrary.MediaType.photo,
-                first: 200,
-                sortBy: MediaLibrary.SortBy.creationTime,
-            });
-            const match = assets.find(a => a.filename === photoId);
-            if (match) {
-                const info = await MediaLibrary.getAssetInfoAsync(match.id);
-                return info.localUri || info.uri;
-            }
-        } catch (e) {
-            console.warn('Filename lookup failed:', e.message);
-        }
     }
 
     try {
