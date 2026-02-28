@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { View, FlatList, Text, Pressable, TextInput, Animated, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
+import { useLocalSearchParams } from 'expo-router';
 import FloatingMenu from '../../components/FloatingMenu.jsx';
 import PhotoItem from '../../components/PhotoItem.jsx';
 import { getPhotos, getPhotoLocalURI } from 'service/photoService.js';
@@ -18,6 +19,7 @@ export default function Library() {
     const [selectedPhoto, setSelectedPhoto] = useState(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const allPhotosRef = useRef([]);
+    const { query: incomingQuery } = useLocalSearchParams();
 
     const menuAnim = useRef(new Animated.Value(0)).current;
     const searchAnim = useRef(new Animated.Value(0)).current;
@@ -60,6 +62,18 @@ export default function Library() {
     };
 
     useEffect(() => { handleGetPhotos(); }, []);
+
+    useEffect(() => {
+        if (incomingQuery) {
+            setSearchQuery(incomingQuery);
+            setIsSearching(true);
+            Animated.timing(searchAnim, { toValue: 1, duration: 250, useNativeDriver: false }).start();
+            getPhotos(incomingQuery).then(async assets => {
+                const resolved = await resolveUris(assets);
+                setPhotos(resolved);
+            }).catch(console.error);
+        }
+    }, [incomingQuery]);
 
 const handleSearch = async () => {
     try {

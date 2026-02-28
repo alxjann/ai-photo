@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import embed from './routes/embed.js';
 import image from './routes/image.js';
 import search from './routes/search.js';
+import people from './routes/people.js';
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api', embed);
 app.use('/api', image);
 app.use('/api', search);
+app.use('/api', people);
 
 app.get('/', (req, res) => {
   res.json({ message: 'AI Photo Gallery API is running!' });

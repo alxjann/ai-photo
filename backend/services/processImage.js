@@ -1,6 +1,7 @@
 import { getCompressedImageBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
+import { detectPeople } from './detectPeople.js';
 
 export const processImage = async (user, supabase, image, device_asset_id) => {
     const start = Date.now();
@@ -8,7 +9,6 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
 
     const compressedImage = await getCompressedImageBuffer(image);
 
-    // Check for duplicate device_asset_id instead of phash
     const { data: existing } = await supabase
         .from('photo')
         .select('id')
@@ -18,7 +18,10 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
 
     if (existing) throw new Error('DUPLICATE_IMAGE');
 
-    const description = await describeImage(compressedImage);
+    const [description, detectedPeople] = await Promise.all([
+        describeImage(compressedImage),
+        detectPeople(user, supabase, compressedImage),
+    ]);
 
     const literalStart = description.indexOf('[LITERAL]');
     const descriptiveStart = description.indexOf('[DESCRIPTIVE]');
@@ -26,7 +29,10 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
 
     const literal = description.substring(literalStart + 9, descriptiveStart).trim();
     const descriptive = description.substring(descriptiveStart + 13, tagsStart).trim();
-    const tags = description.substring(tagsStart + 6).trim().toLowerCase();
+
+    const baseTags = description.substring(tagsStart + 6).trim().toLowerCase();
+    const peopleTags = detectedPeople.map(name => `person:${name}`).join(', ');
+    const tags = peopleTags ? `${baseTags}, ${peopleTags}` : baseTags;
 
     const [descriptiveEmbedding, literalEmbedding] = await Promise.all([
         generateEmbedding(descriptive),
@@ -50,12 +56,13 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
             tags,
             descriptive_embedding: descriptiveEmbedding,
             literal_embedding: literalEmbedding,
+            people: detectedPeople,
         })
         .select()
         .single();
 
     if (insertError) throw insertError;
 
-    console.log(`processImage: completed in ${Date.now() - start}ms`);
+    console.log(`processImage: completed in ${Date.now() - start}ms, people: [${detectedPeople.join(', ')}]`);
     return insertData;
 };
