@@ -49,7 +49,7 @@ export const processPhotos = async (photos) => {
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
     const assets = photos.map((photo) => {
-        const assetId = photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null;
+        const assetId = photo.assetId || photo.uri;
         return { ...photo, resolvedAssetId: assetId };
     });
 
@@ -97,7 +97,7 @@ export const processPhotos = async (photos) => {
 
     if (assets.length === 1) {
         return {
-            added: [{ id: data.photo?.id, uri: assets[0].uri }],
+            added: [{ id: data.photo?.id, device_asset_id: assets[0].resolvedAssetId, uri: assets[0].uri }],
             duplicates: 0
         };
     }
@@ -105,6 +105,7 @@ export const processPhotos = async (photos) => {
     const successfulResults = data.results || [];
     const added = successfulResults.map(r => ({
         id: r.photo?.id,
+        device_asset_id: assets[r.index].resolvedAssetId,
         uri: assets[r.index].uri,
     }));
     return { added, duplicates: assets.length - added.length };
@@ -136,22 +137,12 @@ export const getPhotos = async (query = '') => {
     }
 };
 
-export const deletePhoto = async (photoId) => {
-    try {
-        const token = await getSession();
-        const response = await fetch(`${API_URL}/api/photo/${photoId}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (!response.ok) throw new Error('Delete failed');
-        return true;
-    } catch (error) {
-        console.error('deletePhoto error:', error.message);
-        throw error;
-    }
-};
-
 export const getPhotoLocalURI = async (photoId) => {
+    // if android uri
+    if (photoId && (photoId.startsWith('file://') || photoId.startsWith('content://') || photoId.startsWith('ph://'))) {
+        return photoId;
+    }
+    // if ios
     try {
         const assetInfo = await MediaLibrary.getAssetInfoAsync(photoId);
         return assetInfo.localUri || assetInfo.uri;
