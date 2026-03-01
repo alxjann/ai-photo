@@ -1,57 +1,62 @@
-import '@tensorflow/tfjs-node';
-import * as canvas from 'canvas';
-import * as faceapi from '@vladmandic/face-api';
+import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MODELS_PATH = path.join(__dirname, '../../models');
+const SIDECAR = path.join(__dirname, '../../face_recognition_sidecar.py');
+const PYTHON = '/Library/Frameworks/Python.framework/Versions/3.13/bin/python3';
 
-const { Canvas, Image, ImageData } = canvas;
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+const callPython = (input) => {
+    return new Promise((resolve, reject) => {
+        const proc = spawn(PYTHON, [SIDECAR]);
+        let stdout = '';
+        let stderr = '';
 
-let modelsLoaded = false;
+        proc.stdout.on('data', d => stdout += d);
+        proc.stderr.on('data', d => stderr += d);
+        proc.stdin.on('error', () => {});
 
-export const loadModels = async () => {
-    if (modelsLoaded) return;
-    await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromDisk(MODELS_PATH),
-        faceapi.nets.faceLandmark68Net.loadFromDisk(MODELS_PATH),
-        faceapi.nets.faceRecognitionNet.loadFromDisk(MODELS_PATH),
-    ]);
-    modelsLoaded = true;
-    console.log('faceRecognition: models loaded');
+        proc.on('close', code => {
+            if (code !== 0) return reject(new Error(stderr || 'Python sidecar failed'));
+            try {
+                const result = JSON.parse(stdout);
+                if (result.error) return reject(new Error(result.error));
+                resolve(result);
+            } catch {
+                reject(new Error('Failed to parse Python output: ' + stdout));
+            }
+        });
+
+        proc.stdin.write(JSON.stringify(input));
+        proc.stdin.end();
+    });
 };
 
-export const computeDescriptors = async (imageBuffer) => {
-    await loadModels();
-    const img = await canvas.loadImage(imageBuffer);
-    const detections = await faceapi
-        .detectAllFaces(img)
-        .withFaceLandmarks()
-        .withFaceDescriptors();
-    return detections.map(d => Array.from(d.descriptor));
+export const computeFaces = async (imageBuffer) => {
+    const result = await callPython({
+        action: 'compute',
+        image: imageBuffer.toString('base64'),
+    });
+    return result.faces;
 };
 
-export const matchDescriptors = (queryDescriptors, labeledDescriptors, threshold = 0.6) => {
+export const matchDescriptors = async (queryDescriptors, labeledDescriptors, threshold = 0.45) => {
     if (!queryDescriptors.length || !labeledDescriptors.length) return [];
+    const result = await callPython({
+        action: 'match',
+        descriptors: queryDescriptors,
+        labeled: labeledDescriptors,
+        threshold,
+    });
+    return result.matches;
+};
 
-    const labeled = labeledDescriptors.map(({ name, descriptors }) =>
-        new faceapi.LabeledFaceDescriptors(
-            name,
-            descriptors.map(d => new Float32Array(d))
-        )
-    );
-
-    const matcher = new faceapi.FaceMatcher(labeled, threshold);
-    const matched = new Set();
-
-    for (const descriptor of queryDescriptors) {
-        const result = matcher.findBestMatch(new Float32Array(descriptor));
-        if (result.label !== 'unknown') {
-            matched.add(result.label);
-        }
-    }
-
-    return Array.from(matched);
+export const clusterFaces = async (faces, threshold = 0.6) => {
+    if (!faces.length) return [];
+    const result = await callPython({
+        action: 'cluster',
+        faces,
+        threshold,
+    });
+    return result.clusters;
 };

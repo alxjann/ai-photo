@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import { getSession } from './auth/authService';
@@ -49,7 +50,7 @@ export const processPhotos = async (photos) => {
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
     const assets = photos.map((photo) => {
-        const assetId = photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null;
+        const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
         return { ...photo, resolvedAssetId: assetId };
     });
 

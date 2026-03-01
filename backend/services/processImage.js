@@ -18,21 +18,38 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
 
     if (existing) throw new Error('DUPLICATE_IMAGE');
 
-    const [description, detectedPeople] = await Promise.all([
+    const [description, { matched: detectedPeople, faces }] = await Promise.all([
         describeImage(compressedImage),
         detectPeople(user, supabase, compressedImage),
     ]);
 
-    const literalStart = description.indexOf('[LITERAL]');
-    const descriptiveStart = description.indexOf('[DESCRIPTIVE]');
-    const tagsStart = description.indexOf('[TAGS]');
+    const faceCount = faces.length;
+    const faceDescriptors = faces.map(f => f.descriptor);
 
-    const literal = description.substring(literalStart + 9, descriptiveStart).trim();
-    const descriptive = description.substring(descriptiveStart + 13, tagsStart).trim();
+    const hasFormat = description.includes('[LITERAL]') &&
+        description.includes('[DESCRIPTIVE]') &&
+        description.includes('[TAGS]');
 
-    const baseTags = description.substring(tagsStart + 6).trim().toLowerCase();
+    let literal, descriptive, baseTags;
+
+    if (hasFormat) {
+        const literalStart = description.indexOf('[LITERAL]');
+        const descriptiveStart = description.indexOf('[DESCRIPTIVE]');
+        const tagsStart = description.indexOf('[TAGS]');
+        literal = description.substring(literalStart + 9, descriptiveStart).trim();
+        descriptive = description.substring(descriptiveStart + 13, tagsStart).trim();
+        baseTags = description.substring(tagsStart + 6).trim().toLowerCase();
+    } else {
+        const names = detectedPeople.length ? detectedPeople.join(' and ') : 'someone';
+        literal = `A personal photo featuring ${names}.`;
+        descriptive = `A personal photo featuring ${names}.`;
+        baseTags = 'person, people, selfie, portrait';
+    }
+
     const peopleTags = detectedPeople.map(name => `person:${name}`).join(', ');
-    const tags = peopleTags ? `${baseTags}, ${peopleTags}` : baseTags;
+    const tags = peopleTags && !baseTags.includes('person:')
+        ? `${baseTags}, ${peopleTags}`
+        : baseTags;
 
     const [descriptiveEmbedding, literalEmbedding] = await Promise.all([
         generateEmbedding(descriptive),
@@ -57,12 +74,66 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
             descriptive_embedding: descriptiveEmbedding,
             literal_embedding: literalEmbedding,
             people: detectedPeople,
+            face_count: faceCount,
+            face_descriptors: faceDescriptors,
         })
         .select()
         .single();
 
     if (insertError) throw insertError;
 
-    console.log(`processImage: completed in ${Date.now() - start}ms, people: [${detectedPeople.join(', ')}]`);
+    await Promise.all([
+        updatePeopleThumbnails(user, supabase, insertData.id, detectedPeople, faceCount),
+        storeUnknownFaces(user, supabase, insertData.id, faces, detectedPeople, faceCount),
+    ]);
+
+    console.log(`processImage: completed in ${Date.now() - start}ms, faces: ${faceCount}, people: [${detectedPeople.join(', ')}]`);
     return insertData;
+};
+
+const updatePeopleThumbnails = async (user, supabase, photoId, detectedPeople, faceCount) => {
+    if (!detectedPeople.length || faceCount !== 1) return;
+
+    const { data: people } = await supabase
+        .from('people')
+        .select('id, thumbnail_photo_id')
+        .eq('user_id', user.id)
+        .in('name', detectedPeople);
+
+    if (!people) return;
+
+    await Promise.all(people
+        .filter(p => !p.thumbnail_photo_id)
+        .map(p => supabase
+            .from('people')
+            .update({ thumbnail_photo_id: photoId })
+            .eq('id', p.id)
+        )
+    );
+};
+
+const storeUnknownFaces = async (user, supabase, photoId, faces, detectedPeople, faceCount) => {
+    if (!faces.length || faceCount > 5) return;
+
+    const { data: people } = await supabase
+        .from('people')
+        .select('descriptors')
+        .eq('user_id', user.id);
+
+    const knownDescriptors = (people || []).flatMap(p => p.descriptors.map(d => new Float32Array(d)));
+
+    const unknownFaces = faces.filter(face => {
+        if (detectedPeople.length && knownDescriptors.length) return false;
+        return true;
+    });
+
+    if (!unknownFaces.length) return;
+
+    const representativeDescriptors = unknownFaces.map(f => f.descriptor);
+
+    await supabase.from('unknown_faces').insert({
+        user_id: user.id,
+        descriptors: representativeDescriptors,
+        representative_photo_id: photoId,
+    });
 };
