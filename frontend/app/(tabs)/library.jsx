@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, FlatList, Text, Pressable, TextInput, Animated, Keyboard } from 'react-native';
+import { View, FlatList, Text, Pressable, TextInput, Animated, Keyboard, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
+import { useRouter } from 'expo-router';
 import FloatingMenu from '../../components/FloatingMenu.jsx';
 import PhotoItem from '../../components/PhotoItem.jsx';
 import { getPhotos, getPhotoLocalURI, deletePhoto } from 'service/photoService.js';
@@ -13,12 +14,13 @@ const numColumns = 4;
 
 export default function Library() {
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({ mediaTypes: 'photo' });
-  const { photos, setPhotos, appendPhoto } = usePhotoContext();
+  const { photos, setPhotos, appendPhoto, uploadProgress } = usePhotoContext();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
 
+  const router = useRouter();
   const menuAnim = useRef(new Animated.Value(0)).current;
   const searchAnim = useRef(new Animated.Value(0)).current;
 
@@ -116,7 +118,7 @@ export default function Library() {
     setPhotos(sorted);
     await setCachedPhotos(sorted);
   };
-//useEffect(() => { handleGetPhotos(); }, []);
+  //useEffect(() => { handleGetPhotos(); }, []);
   useEffect(() => {
     if (!isSearching) {
       handleGetPhotos();
@@ -161,10 +163,8 @@ export default function Library() {
     if (index !== -1) setSelectedIndex(index);
   }, [photos]);
 
-  // photos array for PhotoViewer
   const viewerPhotos = photos.map(photo => ({
-    item: photo,
-    uri: photo.uri ?? null,
+    item: photo
   }));
 
   const handleDeleteSelectedPhoto = useCallback(async () => {
@@ -195,9 +195,9 @@ export default function Library() {
     if (!isSearching) setIsSearching(true);
 
     Animated.timing(searchAnim, {
-      toValue: toValue,
+      toValue,
       duration: 250,
-      useNativeDriver: false
+      useNativeDriver: false,
     }).start(() => {
       if (toValue === 0) {
         setIsSearching(false);
@@ -222,6 +222,10 @@ export default function Library() {
   const titleOpacity = searchAnim.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0] });
   const searchWidth = searchAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '78%'] });
   const searchOpacity = searchAnim.interpolate({ inputRange: [0.2, 1], outputRange: [0, 1] });
+
+  const uploadPct = uploadProgress
+    ? Math.round((uploadProgress.current / uploadProgress.total) * 100)
+    : 0;
 
   return (
     <View className="flex-1 bg-white">
@@ -269,6 +273,42 @@ export default function Library() {
           </Text>
         )}
       </View>
+
+      {/* upload progress banner */}
+      {uploadProgress && (
+        <Pressable
+          onPress={() => router.push('/upload')}
+          className="mx-3 mt-2 mb-1 bg-[#F0F4FF] rounded-2xl px-4 py-3 active:opacity-70"
+        >
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center">
+              {uploadProgress.done ? (
+                <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
+              ) : (
+                <ActivityIndicator size="small" color="#3B5BDB" />
+              )}
+              <Text
+                className={`font-semibold text-sm ml-2 ${
+                  uploadProgress.done ? 'text-green-600' : 'text-[#3B5BDB]'
+                }`}
+              >
+                {uploadProgress.done
+                  ? `${uploadProgress.total} photo${uploadProgress.total !== 1 ? 's' : ''} added`
+                  : `Uploading… ${uploadProgress.current}/${uploadProgress.total}`}
+              </Text>
+            </View>
+            <Text className="text-[#6681E0] text-xs">Tap to view</Text>
+          </View>
+
+          {/* Bar */}
+          <View className="h-1.5 bg-[#D9E2FF] rounded-full overflow-hidden">
+            <View
+              className={`h-full rounded-full ${uploadProgress.done ? 'bg-[#22C55E]' : 'bg-[#3B5BDB]'}`}
+              style={{ width: `${uploadPct}%` }}
+            />
+          </View>
+        </Pressable>
+      )}
 
       {/* photo grid */}
       <FlatList
