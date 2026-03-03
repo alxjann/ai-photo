@@ -1,32 +1,32 @@
-import ModelClient from "@azure-rest/ai-inference";
-import { AzureKeyCredential } from "@azure/core-auth";
+import OpenAI from "openai";
 import dotenv from 'dotenv';
 dotenv.config();
 
-const embeddingClient = ModelClient(
-    "https://models.github.ai/inference",
-    new AzureKeyCredential(process.env.VECTOR_TOKEN)
-);
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY, 
+});
 
-const embeddingModel = "openai/text-embedding-3-small";
+const embeddingModel = "text-embedding-3-small";
 
 export const generateEmbedding = async (text) => {
     const start = Date.now();
-    const response = await embeddingClient.path("/embeddings").post({
-        body: {
-            input: [text],
+
+    try {
+        const response = await openai.embeddings.create({
             model: embeddingModel,
-        },
-    });
+            input: text,
+            encoding_format: "float",
+        });
 
-    if (response.status === '429') {
-        throw new Error('Embedding rate limit hit — try again shortly');
+        console.log(`generateEmbedding: completed in ${Date.now() - start}ms`);
+
+        return response.data[0].embedding;
+
+    } catch (error) {
+        if (error.status === 429) {
+            throw new Error('Embedding rate limit hit — try again shortly');
+        }
+        
+        throw new Error(error.message || 'Embedding failed');
     }
-
-    if (response.body?.error) {
-        throw new Error(response.body.error.message || 'Embedding failed');
-    }
-
-    console.log(`generateEmbedding: completed in ${Date.now() - start}ms`);
-    return response.body.data[0].embedding;
 };

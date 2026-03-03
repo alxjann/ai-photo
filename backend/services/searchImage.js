@@ -1,8 +1,10 @@
-import { isUnexpected } from "@azure-rest/ai-inference";
-import { aiClient } from '../config/ai.config.js';
+import OpenAI from 'openai';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 
-//search prompt
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
 async function rerankWithGPT(query, candidates) {
     if (!candidates || candidates.length === 0) return [];
 
@@ -11,12 +13,11 @@ async function rerankWithGPT(query, candidates) {
     ).join('\n\n');
 
     try {
-        const response = await aiClient.path('/chat/completions').post({
-            body: {
-                model: 'gpt-4o-mini',
-                messages: [{
-                    role: 'user',
-                    content: `You are a photo search relevance judge.
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            messages: [{
+                role: 'user',
+                content: `You are a photo search relevance judge.
 
 Query: "${query}"
 
@@ -32,14 +33,11 @@ ${candidateList}
 
 Reply with ONLY a comma-separated list of numbers (e.g. "1,3,5") or "none" if truly nothing matches.
 Numbers only, no explanation.`
-                }],
-                max_tokens: 60,
-            }
+            }],
+            max_tokens: 60,
         });
 
-        if (isUnexpected(response)) throw new Error('rerank failed');
-
-        const raw = response.body.choices[0].message.content?.trim();
+        const raw = response.choices[0].message.content?.trim();
 
         if (!raw || raw.toLowerCase() === 'none') return [];
 
@@ -52,13 +50,11 @@ Numbers only, no explanation.`
         return candidates.filter((_, i) => keepIndices.has(i));
 
     } catch (err) {
-        console.warn(' fail, returning all candidates:', err.message);
+        console.warn('Rerank failed, returning all candidates:', err.message);
         return candidates;
     }
 }
 
-
-// main search function
 export const searchImage = async (user, supabase, query) => {
 
     if (!query || query.trim() === '') {
@@ -66,7 +62,8 @@ export const searchImage = async (user, supabase, query) => {
             .from('photo')
             .select('id, device_asset_id, descriptive, literal, tags, created_at, category')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: false })
+            .limit(50);
 
         if (error) throw error;
         return { results: data, count: data?.length || 0 };
@@ -75,7 +72,7 @@ export const searchImage = async (user, supabase, query) => {
     const normalizedQuery = query.trim();
 
     const queryEmbedding = await generateEmbedding(normalizedQuery);
-    // adjust search prompt weights
+
     const { data, error } = await supabase.rpc('hybrid_search_photos', {
         query_text: normalizedQuery,
         query_embedding: queryEmbedding,
@@ -89,9 +86,7 @@ export const searchImage = async (user, supabase, query) => {
     console.log(`Hybrid search results: ${data?.length ?? 0}`);
     if (error) throw error;
 
-    if (!data || data.length === 0) {
-        return { results: [], count: 0 };
-    }
+    if (!data || data.length === 0) return { results: [], count: 0 };
 
     const reranked = await rerankWithGPT(normalizedQuery, data);
 

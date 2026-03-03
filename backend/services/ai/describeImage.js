@@ -1,10 +1,12 @@
 import { isUnexpected } from "@azure-rest/ai-inference";
 import { aiClient } from "../../config/ai.config.js";
-
+import OpenAI from "openai";
 const gptModel = "gpt-4o-mini";
+import dotenv from 'dotenv';
+dotenv.config();
 
-const IMAGE_PROMPT = `You are an expert image analysis assistant with deep knowledge of Filipino cuisine, games, anime, films, landmarks, nature, and pop culture.
-
+const IMAGE_PROMPT = `
+You are an expert image analysis assistant with deep knowledge of Filipino cuisine, games, anime, films, landmarks, nature, and pop culture.
 Analyze the image and produce THREE separate sections:
 
 RULES:
@@ -56,18 +58,33 @@ Categories and when to use them:
 - None
 `;
 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, 
+});
+
+import { encoding_for_model } from "tiktoken";
+
+const enc = encoding_for_model("gpt-4o-mini");
+const tokens = enc.encode(IMAGE_PROMPT);
+console.log("IMAGE_PROMPT tokens:", tokens.length);
+enc.free();
+
 export const describeImage = async (imageBuffer) => {
     const start = Date.now();
-    console.log('describeImage: sending request to GPT...');
+    console.log('describeImage: sending request to OpenAI...');
 
-    const response = await aiClient.path("/chat/completions").post({
-        body: {
+    try {
+        const response = await openai.chat.completions.create({
             model: gptModel,
+            store: true,
             messages: [
+                {
+                    role: "system",
+                    content: IMAGE_PROMPT
+                },
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: IMAGE_PROMPT },
                         {
                             type: "image_url",
                             image_url: {
@@ -79,18 +96,25 @@ export const describeImage = async (imageBuffer) => {
                 },
             ],
             max_tokens: 600,
-        },
-    });
+        });
 
-    if (isUnexpected(response)) {
-        throw new Error(response.body.error?.message || 'AI request failed');
+        const { prompt_tokens, completion_tokens, total_tokens } = response.usage;
+        console.log(response.usage)
+        const cached = response.usage.prompt_tokens_details?.cached_tokens ?? 0;  // ← check cache hits
+        console.log(`describeImage: Success in ${Date.now() - start}ms | tokens — prompt: ${prompt_tokens} (cached: ${cached}), completion: ${completion_tokens}, total: ${total_tokens}`);
+                
+        const content = response.choices[0].message.content;
+        if (!content) throw new Error('Empty response from AI');
+
+        return content;
+
+    } catch (error) {
+        if (error.status === 429) {
+            console.error('Rate limit hit for GPT-4o-mini');
+            throw new Error('Image analysis rate limit hit — try again shortly');
+        }
+
+        console.error('OpenAI Error:', error.message);
+        throw new Error(error.message || 'Image description failed');
     }
-
-    const content = response.body.choices[0].message.content;
-    if (!content) throw new Error('Empty response from AI');
-
-    console.log(`describeImage: GPT responded in ${Date.now() - start}ms`);
-    console.log('describeImage response:\n', content);
-
-    return content;
 };

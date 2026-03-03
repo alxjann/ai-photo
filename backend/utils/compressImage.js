@@ -22,7 +22,7 @@ export const getCompressedImageBuffer = async (imageBuffer) => {
 
   const final = await sharp(bufferToProcess)
     .resize({ width: 256 })
-    .jpeg({ quality: 40 })
+    .jpeg({ quality: 85 })
     .toBuffer();
   return final;
 };
