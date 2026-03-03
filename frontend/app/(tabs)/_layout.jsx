@@ -38,6 +38,16 @@ export default function TabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="albums"
+          options={{
+            headerShown: false,
+            tabBarLabel: 'Albums',
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
     </>
   );
