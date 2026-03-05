@@ -17,6 +17,7 @@ export default function Library() {
   const { photos, setPhotos, appendPhoto, uploadProgress } = usePhotoContext();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
 
@@ -127,6 +128,7 @@ export default function Library() {
 
   const handleSearch = async () => {
     try {
+      setSearchLoading(true);
       if (!searchQuery || searchQuery.trim() === '') {
         await handleGetPhotos();
         return;
@@ -152,6 +154,8 @@ export default function Library() {
       setPhotos(sorted);
     } catch (e) {
       console.error('Search error', e);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -249,6 +253,7 @@ export default function Library() {
                 onSubmitEditing={handleSearch}
                 autoFocus
                 className="bg-gray-100 rounded-xl px-4 py-3 text-gray-900 text-base"
+                editable={!searchLoading}
               />
             </Animated.View>
           )}
@@ -310,15 +315,22 @@ export default function Library() {
         </Pressable>
       )}
 
-      {/* photo grid */}
-      <FlatList
-        data={photos}
-        numColumns={numColumns}
-        keyExtractor={(item) => item.device_asset_id}
-        contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2 }}
-        showsVerticalScrollIndicator={false}
-        renderItem={renderPhotoItem}
-      />
+      {/* photo grid or loading */}
+      {searchLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#000000" />
+          <Text className="mt-3 text-base text-gray-500">Searching…</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={photos}
+          numColumns={numColumns}
+          keyExtractor={(item) => item.device_asset_id}
+          contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2 }}
+          showsVerticalScrollIndicator={false}
+          renderItem={renderPhotoItem}
+        />
+      )}
 
       <PhotoViewer
         visible={selectedIndex !== null}
