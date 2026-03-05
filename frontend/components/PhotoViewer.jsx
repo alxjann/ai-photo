@@ -125,18 +125,23 @@ export default function PhotoViewer({ visible, photos = [], initialIndex = 0, on
           >
             {photos.map((photo, index) => {
               const uri = photo.uri ?? photo.item?.uri;
+              const key = photo.item?.device_asset_id ?? photo.device_asset_id ?? index;
+
+              // only render the current page and its immediate neighbors.
+              const shouldRenderImage = Math.abs(index - currentIndex) <= 1;
+
               return (
-                <View
-                  key={photo.item?.device_asset_id ?? photo.device_asset_id ?? index}
-                  style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-                >
-                  {uri ? (
+                <View key={key} className="flex-1 justify-center items-center">
+                  {uri && shouldRenderImage ? (
                     <Image
                       source={{ uri }}
                       style={{ width: '100%', height: '100%' }}
                       contentFit="contain"
                       cachePolicy="memory-disk"
                     />
+                  ) : uri && !shouldRenderImage ? (
+                    // placeholder for offscreen pages to avoid heavy decoding on open
+                    <View className="w-full h-full bg-black" />
                   ) : (
                     <ActivityIndicator size="large" color="white" />
                   )}
