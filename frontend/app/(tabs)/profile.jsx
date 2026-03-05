@@ -89,7 +89,7 @@ export default function Profile() {
   return (
     <View className={`flex-1 ${colors.pageBg}`}>
       {/* Header */}
-      <View className={`pt-16 pb-6 px-4 border-b ${colors.cardBg} ${colors.border}`}>
+      <View className={`pt-16 pb-6 px-4 border-b ${colors.headerBg} ${colors.border}`}>
         <Text className={`text-3xl font-extrabold tracking-tight ${colors.textPrimary}`}>
           Profile
         </Text>

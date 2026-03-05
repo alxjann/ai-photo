@@ -2,10 +2,12 @@ import { memo, useCallback } from 'react';
 import { View, Dimensions, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useThemeContext } from 'context/ThemeContext.jsx';
 
 const { width: windowWidth } = Dimensions.get('window');
 
 function PhotoItem({ localUri, numColumns, onPress, item }) {
+  const { isDarkMode } = useThemeContext();
   const size = (windowWidth - 4) / numColumns - 4;
 
   const isVideo = item?.isVideo || item?.mediaType === 'video';
@@ -17,7 +19,7 @@ function PhotoItem({ localUri, numColumns, onPress, item }) {
 
   return (
     <Pressable onPress={handlePress}>
-      <View className="m-0.5 overflow-hidden bg-gray-200" style={{ width: size, height: size }}>
+      <View className={`m-0.5 overflow-hidden ${isDarkMode ? 'bg-zinc-700' : 'bg-gray-200'}`} style={{ width: size, height: size }}>
         {localUri && (
           <Image
             source={{ uri: localUri }}

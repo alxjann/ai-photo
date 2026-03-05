@@ -2,12 +2,14 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../config/supabase.js';
 import { PhotoProvider } from 'context/PhotoContext.jsx';
+import { ThemeProvider, useThemeContext } from 'context/ThemeContext.jsx';
 import '../global.css';
 
-export default function RootLayout() {
+function RootNavigator() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
   const segments = useSegments();
   const router = useRouter();
+  const { isThemeReady } = useThemeContext();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,17 +35,25 @@ export default function RootLayout() {
     }
   }, [isLoggedIn, segments]);
 
-  if (isLoggedIn === null) return null;
+  if (isLoggedIn === null || !isThemeReady) return null;
 
   return (
-    <PhotoProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-          animationDuration: 600,
-        }}
-      />
-    </PhotoProvider>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        animationDuration: 600,
+      }}
+    />
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <PhotoProvider>
+        <RootNavigator />
+      </PhotoProvider>
+    </ThemeProvider>
   );
 }

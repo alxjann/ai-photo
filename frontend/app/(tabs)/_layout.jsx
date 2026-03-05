@@ -3,29 +3,35 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dimensions } from 'react-native';
+import { useThemeContext } from 'context/ThemeContext.jsx';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const screenHeight = Dimensions.get('window').height;
   const headerHeight = Math.max(125, Math.min(150, screenHeight * 0.12));
   const headerPaddingTop = Math.max(16, Math.min(40, screenHeight * 0.04)) + insets.top;
+  const { isDarkMode } = useThemeContext();
+
+  const bgColor = isDarkMode ? '#2A2A2A' : '#F5F5F7';
+  const activeTint = isDarkMode ? '#F9FAFB' : '#000000';
+  const inactiveTint = isDarkMode ? '#A1A1AA' : '#9CA3AF';
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: '#000',
-          tabBarInactiveTintColor: '#9ca3af',
+          tabBarActiveTintColor: activeTint,
+          tabBarInactiveTintColor: inactiveTint,
           tabBarStyle: {
-            backgroundColor: '#F5F5F7',
+            backgroundColor: bgColor,
             borderTopWidth: 0,
             height: 55 + insets.bottom,
             paddingBottom: 8,
             paddingTop: 8,
           },
           tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-          headerStyle: { backgroundColor: '#F5F5F7', height: headerHeight, paddingTop: headerPaddingTop },
+          headerStyle: { backgroundColor: bgColor, height: headerHeight, paddingTop: headerPaddingTop },
         }}
       >
         <Tabs.Screen
@@ -48,7 +54,18 @@ export default function TabsLayout() {
             ),
           }}
         />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            headerShown: false,
+            tabBarLabel: 'Profile',
+            tabBarIcon: ({ color, focused, size }) => (
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
+            ),
+          }}
+        />
       </Tabs>
     </>
   );
 }
+

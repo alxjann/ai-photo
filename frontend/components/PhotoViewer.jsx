@@ -4,18 +4,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
 import PagerView from 'react-native-pager-view';
+import { useThemeContext } from 'context/ThemeContext.jsx';
+import { getThemeColors } from 'theme/appColors.js';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-function TagPill({ tag }) {
+function TagPill({ tag, colors }) {
   return (
-    <View className="bg-gray-100 rounded-full px-3 py-1 mr-2 mb-2">
-      <Text className="text-gray-600 text-xs">{tag}</Text>
+    <View className={`rounded-full px-3 py-1 mr-2 mb-2 ${colors.tagBg}`}>
+      <Text className={`text-xs ${colors.tagText}`}>{tag}</Text>
     </View>
   );
 }
 
 export default function PhotoViewer({ visible, photos = [], initialIndex = 0, onClose, onDelete, isDeleting = false }) {
+  const { isDarkMode } = useThemeContext();
+  const colors = getThemeColors(isDarkMode);
   const pagerRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
@@ -195,12 +199,12 @@ export default function PhotoViewer({ visible, photos = [], initialIndex = 0, on
                 transform: [{ translateY: sheetAnim }],
                 height: SCREEN_HEIGHT * 0.5,
               }}
-              className="absolute bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl"
+              className={`absolute bottom-0 left-0 right-0 z-50 rounded-t-2xl ${colors.sheetBg}`}
             >
-              <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-100">
-                <Text className="text-black text-lg font-semibold">Photo Info</Text>
+              <View className={`flex-row items-center justify-between px-5 py-4 border-b ${colors.sheetBorder}`}>
+                <Text className={`text-lg font-semibold ${colors.title}`}>Photo Info</Text>
                 <Pressable onPress={closeSheet}>
-                  <Ionicons name="close" size={22} color="black" />
+                  <Ionicons name="close" size={22} color={colors.icon} />
                 </Pressable>
               </View>
 
@@ -211,29 +215,29 @@ export default function PhotoViewer({ visible, photos = [], initialIndex = 0, on
               >
                 {photoData?.literal && (
                   <View className="mb-4">
-                    <Text className="text-black text-sm font-semibold tracking-wider mb-1">Literal</Text>
-                    <Text className="text-gray-600 text-md leading-relaxed">{photoData.literal}</Text>
+                    <Text className={`text-sm font-semibold tracking-wider mb-1 ${colors.title}`}>Literal</Text>
+                    <Text className={`text-md leading-relaxed ${colors.body}`}>{photoData.literal}</Text>
                   </View>
                 )}
                 {photoData?.descriptive && (
                   <View className="mb-4">
-                    <Text className="text-black text-sm font-semibold tracking-wider mb-1">Descriptive</Text>
-                    <Text className="text-gray-600 text-md leading-relaxed">{photoData.descriptive}</Text>
+                    <Text className={`text-sm font-semibold tracking-wider mb-1 ${colors.title}`}>Descriptive</Text>
+                    <Text className={`text-md leading-relaxed ${colors.body}`}>{photoData.descriptive}</Text>
                   </View>
                 )}
                 <View className="mb-4">
-                  <Text className="text-black text-xs font-semibold uppercase tracking-wider mb-1">Manual Description</Text>
-                  <Text className="text-gray-600 text-sm leading-relaxed">
+                  <Text className={`text-xs font-semibold uppercase tracking-wider mb-1 ${colors.title}`}>Manual Description</Text>
+                  <Text className={`text-sm leading-relaxed ${colors.body}`}>
                     {photoData?.manual_description ?? 'None'}
                   </Text>
                 </View>
 
                 {tags.length > 0 && (
                   <View className="mb-4">
-                    <Text className="text-black text-xs font-semibold uppercase tracking-wider mb-2">Tags</Text>
+                    <Text className={`text-xs font-semibold uppercase tracking-wider mb-2 ${colors.title}`}>Tags</Text>
                     <View className="flex-row flex-wrap">
                       {tags.map((tag, i) => (
-                        <TagPill key={i} tag={tag} />
+                        <TagPill key={i} tag={tag} colors={colors} />
                       ))}
                     </View>
                   </View>
@@ -246,3 +250,4 @@ export default function PhotoViewer({ visible, photos = [], initialIndex = 0, on
     </Modal>
   );
 }
+

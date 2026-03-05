@@ -5,11 +5,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect, useRef } from 'react';
 import { processPhotos } from 'service/photoService';
 import { usePhotoContext } from 'context/PhotoContext';
+import { useThemeContext } from 'context/ThemeContext.jsx';
+import { getThemeColors } from 'theme/appColors.js';
 import { addPhotoToCache } from 'service/cacheService';
 
 export default function Upload() {
   const router = useRouter();
   const { appendPhoto, uploadProgress, setUploadProgress } = usePhotoContext();
+  const { isDarkMode } = useThemeContext();
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [selectedAssets, setSelectedAssets] = useState([]);
 
@@ -100,10 +103,12 @@ export default function Upload() {
     ? Math.round((uploadProgress.current / uploadProgress.total) * 100)
     : 0;
 
+  const colors = getThemeColors(isDarkMode);
+
   return (
-    <View className="flex-1 bg-white">
+    <View className={`flex-1 ${colors.pageBg}`}>
       {/* header */}
-      <View className="flex-row items-center px-4 pt-16 pb-4 border-b border-gray-100">
+      <View className={`flex-row items-center px-4 pt-16 pb-4 border-b ${colors.headerBg} ${colors.border}`}>
         <Pressable 
           onPress={() => {
             if (router.canGoBack()) {
@@ -114,9 +119,9 @@ export default function Upload() {
           }} 
           className="mr-4"
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
-        <Text className="text-2xl font-bold">Upload Photos</Text>
+        <Text className={`text-2xl font-bold ${colors.headerText}`}>Upload Photos</Text>
       </View>
 
       <ScrollView className="flex-1 px-4 pt-6">
@@ -125,16 +130,16 @@ export default function Upload() {
         {!isUploading && !isDone && (
           <Pressable
             onPress={handleSelectFromGallery}
-            className="flex-row items-center p-5 mb-4 rounded-2xl active:opacity-70 bg-[#F5F5F7]"
+            className={`flex-row items-center p-5 mb-4 rounded-2xl active:opacity-70 ${colors.cardBg}`}
           >
-            <View className="w-12 h-12 rounded-full items-center justify-center mr-4 bg-[#121212]">
-              <Ionicons name="images-outline" size={22} color="white" />
+            <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${colors.pickerCircle}`}>
+              <Ionicons name="images-outline" size={22} color={colors.pickerCircleIcon} />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-semibold">Choose from Gallery</Text>
-              <Text className="text-gray-500 text-sm mt-0.5">Select one or more photos</Text>
+              <Text className={`text-lg font-semibold ${colors.pickerTitle}`}>Choose from Gallery</Text>
+              <Text className={`text-sm mt-0.5 ${colors.pickerSub}`}>Select one or more photos</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#999" />
+            <Ionicons name="chevron-forward" size={20} color={colors.chevron} />
           </Pressable>
         )}
 
@@ -156,11 +161,11 @@ export default function Upload() {
             </ScrollView>
 
             <View className="flex-row mt-3 px-1">
-              <Pressable onPress={uploadSelected} className="flex-1 bg-[#3B5BDB] rounded-2xl p-3 mr-3 items-center justify-center active:opacity-80">
+              <Pressable onPress={uploadSelected} className="flex-1 bg-[#52525B] rounded-2xl p-3 mr-3 items-center justify-center active:opacity-80">
                 <Text className="text-white font-semibold">Upload Selected ({selectedAssets.length})</Text>
               </Pressable>
-              <Pressable onPress={() => setSelectedAssets([])} className="px-4 py-3 rounded-2xl bg-gray-200 items-center justify-center">
-                <Text className="text-gray-700">Clear</Text>
+              <Pressable onPress={() => setSelectedAssets([])} className={`px-4 py-3 rounded-2xl items-center justify-center ${colors.clearBtn}`}>
+                <Text className={colors.clearText}>Clear</Text>
               </Pressable>
             </View>
           </View>
@@ -192,27 +197,27 @@ export default function Upload() {
 
         {/* upload progress card */}
         {isUploading && (
-          <View className="mb-4 p-5 bg-[#F0F4FF] rounded-2xl">
+          <View className="mb-4 p-5 bg-[#F5F5F5] rounded-2xl">
             <View className="flex-row items-center mb-4">
-              <View className="w-10 h-10 rounded-full bg-[#3B5BDB] items-center justify-center mr-3">
+              <View className="w-10 h-10 rounded-full bg-[#52525B] items-center justify-center mr-3">
                 <ActivityIndicator size="small" color="white" />
               </View>
               <View className="flex-1">
-                <Text className="text-[#3B5BDB] font-bold text-base">
+                <Text className="text-[#52525B] font-bold text-base">
                   Analyzing your photos
                 </Text>
-                <Text className="text-[#6681E0] text-sm mt-0.5">
+                <Text className="text-[#737373] text-sm mt-0.5">
                   AI is describing and indexing your images
                 </Text>
               </View>
-              <Text className="text-[#3B5BDB] font-bold text-base ml-2">
+              <Text className="text-[#52525B] font-bold text-base ml-2">
                 {pct}%
               </Text>
             </View>
 
-            <View className="h-2 bg-[#D9E2FF] rounded-full overflow-hidden">
+            <View className="h-2 bg-[#D4D4D8] rounded-full overflow-hidden">
               <Animated.View
-                className="h-full bg-[#3B5BDB] rounded-full"
+                className="h-full bg-[#52525B] rounded-full"
                 style={{
                   width: progressAnim.interpolate({
                     inputRange: [0, 1],
@@ -223,10 +228,10 @@ export default function Upload() {
             </View>
 
             <View className="flex-row justify-between mt-2">
-              <Text className="text-[#6681E0] text-xs">
+              <Text className="text-[#737373] text-xs">
                 {uploadProgress.current} of {uploadProgress.total} photo{uploadProgress.total !== 1 ? 's' : ''} done
               </Text>
-              <Text className="text-[#6681E0] text-xs">
+              <Text className="text-[#737373] text-xs">
                 {uploadProgress.total - uploadProgress.current} remaining
               </Text>
             </View>
@@ -258,8 +263,8 @@ export default function Upload() {
 
         {!isUploading && !isDone && (
           <View className="flex-row items-start mt-4 px-1">
-            <Ionicons name="information-circle-outline" size={16} color="#999" style={{ marginTop: 2 }} />
-            <Text className="text-gray-400 text-sm ml-1.5 flex-1">
+            <Ionicons name="information-circle-outline" size={16} color={colors.infoIcon} style={{ marginTop: 2 }} />
+            <Text className={`text-sm ml-1.5 flex-1 ${colors.infoText}`}>
               Photos will be analyzed and added to your library automatically.
             </Text>
           </View>
@@ -268,3 +273,6 @@ export default function Upload() {
     </View>
   );
 }
+
+
+

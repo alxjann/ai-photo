@@ -11,6 +11,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { deletePhoto } from 'service/photoService';
 import { removePhotoFromCache } from '../../service/cacheService';
+import { useThemeContext } from 'context/ThemeContext.jsx';
+import { getThemeColors } from 'theme/appColors.js';
 import PhotoViewer from '../../components/PhotoViewer';
 import PhotoItem from '../../components/PhotoItem';
 
@@ -19,6 +21,8 @@ const GRID_COLUMNS = 4;
 
 export default function AlbumDetail({ album, onBack, onPhotosChange }) {
   const insets = useSafeAreaInsets();
+  const { isDarkMode } = useThemeContext();
+  const colors = getThemeColors(isDarkMode);
   const [photos, setPhotos] = useState(album.photos);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
@@ -78,18 +82,18 @@ export default function AlbumDetail({ album, onBack, onPhotosChange }) {
   );
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      <StatusBar barStyle="dark-content" />
+    <View className={`flex-1 ${colors.pageBg}`} style={{ paddingTop: insets.top }}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
       {/* Nav bar */}
       <View className="h-11 flex-row items-center justify-between px-2">
         <Pressable onPress={onBack} hitSlop={12} className="flex-row items-center w-[70px]">
-          <Ionicons name="chevron-back" size={22} color="#000000" />
-          <Text className="text-[17px] text-black">Albums</Text>
+          <Ionicons name="chevron-back" size={22} color={colors.icon} />
+          <Text className={`text-[17px] ${colors.text}`}>Albums</Text>
         </Pressable>
 
         <Animated.Text
-          className="text-[17px] font-semibold text-black text-center"
+          className={`text-[17px] font-semibold text-center ${colors.text}`}
           style={{ opacity: headerTitleOpacity }}
         >
           {album.name}
@@ -112,12 +116,12 @@ export default function AlbumDetail({ album, onBack, onPhotosChange }) {
         ListHeaderComponent={
           <View className="px-4 pt-2 pb-3">
             <Animated.Text
-              className="text-[34px] font-bold text-black tracking-tight"
+              className={`text-[34px] font-bold tracking-tight ${colors.text}`}
               style={{ opacity: largeTitleOpacity }}
             >
               {album.name}
             </Animated.Text>
-            <Text className="text-[13px] text-gray-400 mt-0.5">
+            <Text className={`text-[13px] mt-0.5 ${colors.subtext}`}>
               {photos.length} {photos.length === 1 ? 'Photo' : 'Photos'}
             </Text>
           </View>
@@ -139,3 +143,4 @@ export default function AlbumDetail({ album, onBack, onPhotosChange }) {
     </View>
   );
 }
+

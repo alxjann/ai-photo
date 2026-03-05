@@ -1,11 +1,13 @@
 import { useRef } from 'react';
 import { View, Text, Image, Pressable, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getThemeColors } from 'theme/appColors.js';
 
 const CARD_SIZE = 180;
 
-export default function AlbumCard({ album, onPress }) {
+export default function AlbumCard({ album, onPress, isDarkMode = false }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const colors = getThemeColors(isDarkMode);
 
   const handlePressIn = () =>
     Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true, speed: 30 }).start();
@@ -22,7 +24,7 @@ export default function AlbumCard({ album, onPress }) {
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <View
           style={{ width: CARD_SIZE, height: CARD_SIZE }}
-          className="rounded-xl overflow-hidden bg-gray-200"
+          className={`rounded-xl overflow-hidden ${colors.placeholderBg}`}
         >
           {album.photos.length > 0 ? (
             <Image
@@ -32,18 +34,19 @@ export default function AlbumCard({ album, onPress }) {
             />
           ) : (
             <View className="flex-1 items-center justify-center">
-              <Ionicons name="images-outline" size={28} color="#c0c0c0" />
+              <Ionicons name="images-outline" size={28} color={colors.emptyIcon} />
             </View>
           )}
         </View>
 
         <View className="mt-2 px-0.5">
-          <Text className="text-[13px] font-medium text-black" numberOfLines={1}>
+          <Text className={`text-[13px] font-medium ${colors.title}`} numberOfLines={1}>
             {album.name}
           </Text>
-          <Text className="text-[13px] text-gray-400">{album.photos.length}</Text>
+          <Text className={`text-[13px] ${colors.textSecondary}`}>{album.photos.length}</Text>
         </View>
       </Animated.View>
     </Pressable>
   );
 }
+

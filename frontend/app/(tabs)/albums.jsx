@@ -4,12 +4,12 @@ import {
   Text,
   ScrollView,
   Dimensions,
-  StatusBar,
   Animated,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usePhotoContext } from 'context/PhotoContext.jsx';
+import { useThemeContext } from 'context/ThemeContext.jsx';
+import { getThemeColors } from 'theme/appColors.js';
 import AlbumDetail from '../../components/albums/AlbumDetail.jsx';
 import AlbumCard from '../../components/albums/AlbumCard.jsx';
 
@@ -17,8 +17,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CATEGORY_ORDER = ['food', 'nature', 'animals', 'people', 'travel'];
 
 export default function Albums() {
-  const insets = useSafeAreaInsets();
   const { photos } = usePhotoContext();
+  const { isDarkMode } = useThemeContext();
+  const colors = getThemeColors(isDarkMode);
   const [openAlbum, setOpenAlbum] = useState(null);
 
   const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
@@ -72,51 +73,54 @@ export default function Albums() {
     }).start(() => setOpenAlbum(null));
   }, [slideAnim]);
 
+  const totalPhotosInAlbums = albums.reduce((sum, album) => sum + album.photos.length, 0);
+
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-      <StatusBar barStyle="dark-content" />
-
-      <View className="flex-1 bg-white">
-        {/* Header */}
-        <View className="px-4 pt-2 pb-1 border-b border-gray-200/60">
-          <Text className="text-3xl font-bold text-black tracking-tight">Albums</Text>
-        </View>
-
-        {/* Section title */}
-        <View className="px-4 pt-5 pb-1">
-          <Text className="text-[20px] font-semibold text-black mb-2">My Albums</Text>
-          <View className="h-px bg-gray-200" />
-        </View>
-
-        {albums.length === 0 ? (
-          <View className="items-center pt-20 gap-3">
-            <Ionicons name="images-outline" size={40} color="#c8c8c8" />
-            <Text className="text-base font-medium text-gray-400">No albums yet</Text>
-            <Text className="text-sm text-gray-300">Photos you add will appear here</Text>
-          </View>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
-          >
-            {albumColumns.map((col, i) => (
-              <View
-                key={i}
-                style={{ gap: 12, marginRight: i < albumColumns.length - 1 ? 12 : 0 }}
-              >
-                {col.map(album => (
-                  <AlbumCard key={album.id} album={album} onPress={handleOpenAlbum} />
-                ))}
-              </View>
-            ))}
-          </ScrollView>
-        )}
+    <View className={`flex-1 ${colors.pageBg}`}>
+      {/* Header */}
+      <View className={`pt-16 pb-6 px-4 border-b ${colors.headerBg} ${colors.border}`}>
+        <Text className={`text-3xl font-extrabold tracking-tight ${colors.textPrimary}`}>
+          Albums
+        </Text>
       </View>
+
+      {albums.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Ionicons name="albums-outline" size={64} color={colors.emptyIcon} />
+          <Text className={`text-lg font-semibold mt-4 ${colors.textPrimary}`}>
+            No albums yet
+          </Text>
+          <Text className={`text-sm text-center mt-2 ${colors.textSecondary}`}>
+            Photos you add will be automatically organized into albums
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 }}
+        >
+          {albumColumns.map((col, i) => (
+            <View
+              key={i}
+              style={{ gap: 12, marginRight: i < albumColumns.length - 1 ? 12 : 0 }}
+            >
+              {col.map(album => (
+                <AlbumCard 
+                  key={album.id} 
+                  album={album} 
+                  onPress={handleOpenAlbum} 
+                  isDarkMode={isDarkMode} 
+                />
+              ))}
+            </View>
+          ))}
+        </ScrollView>
+      )}
 
       {openAlbum && (
         <Animated.View
-          className="absolute inset-0 bg-white z-10"
+          className={`absolute inset-0 z-10 ${colors.pageBg}`}
           style={{ transform: [{ translateX: slideAnim }] }}
         >
           <AlbumDetail

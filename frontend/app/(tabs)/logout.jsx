@@ -1,10 +1,15 @@
 import { View, Text, Pressable, Alert } from 'react-native';
 import { logout } from '../../service/auth/authService.js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useThemeContext } from 'context/ThemeContext.jsx';
+import { getThemeColors } from 'theme/appColors.js';
 
 const CACHE_KEY = 'photos_cache';
 
 export default function Logout() {
+  const { isDarkMode } = useThemeContext();
+  const colors = getThemeColors(isDarkMode);
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -36,8 +41,8 @@ export default function Logout() {
   };
 
   return (
-    <View className="flex-1 bg-white px-6 justify-center items-center gap-4">
-      <Text className="text-2xl font-semibold mb-2">Are you sure you want to logout?</Text>
+    <View className={`flex-1 px-6 justify-center items-center gap-4 ${colors.pageBg}`}>
+      <Text className={`text-2xl font-semibold mb-2 ${colors.title}`}>Are you sure you want to logout?</Text>
 
       <Pressable
         className="bg-red-600 rounded-xl py-4 px-8 items-center w-full"
@@ -47,10 +52,10 @@ export default function Logout() {
       </Pressable>
 
       <Pressable
-        className="bg-gray-100 rounded-xl py-4 px-8 items-center w-full"
+        className={`rounded-xl py-4 px-8 items-center w-full ${colors.secondaryBtn}`}
         onPress={handleDeleteCache}
       >
-        <Text className="text-gray-700 font-semibold">Delete Cache</Text>
+        <Text className={`font-semibold ${colors.secondaryText}`}>Delete Cache</Text>
       </Pressable>
     </View>
   );

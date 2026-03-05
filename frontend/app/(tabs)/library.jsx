@@ -8,6 +8,8 @@ import PhotoItem from '../../components/PhotoItem.jsx';
 import { getPhotos, getPhotoLocalURI, deletePhoto } from 'service/photoService.js';
 import PhotoViewer from '../../components/PhotoViewer.jsx';
 import { usePhotoContext } from 'context/PhotoContext.jsx';
+import { useThemeContext } from 'context/ThemeContext.jsx';
+import { getThemeColors } from 'theme/appColors.js';
 import { getCachedPhotos, setCachedPhotos, removePhotoFromCache } from '../../service/cacheService.js';
 
 const numColumns = 4;
@@ -15,6 +17,7 @@ const numColumns = 4;
 export default function Library() {
   const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({ mediaTypes: 'photo' });
   const { photos, setPhotos, appendPhoto, uploadProgress } = usePhotoContext();
+  const { isDarkMode } = useThemeContext();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
@@ -167,9 +170,7 @@ export default function Library() {
     if (index !== -1) setSelectedIndex(index);
   }, [photos]);
 
-  const viewerPhotos = photos.map(photo => ({
-    item: photo
-  }));
+  const viewerPhotos = photos.map(photo => ({ item: photo }));
 
   const handleDeleteSelectedPhoto = useCallback(async () => {
     if (selectedIndex === null || isDeletingPhoto) return;
@@ -182,9 +183,7 @@ export default function Library() {
       const deletedPhotoId = photo.device_asset_id;
 
       await deletePhoto(deletedPhotoId);
-      setPhotos((prev) =>
-        prev.filter((p) => p.device_asset_id !== deletedPhotoId)
-      );
+      setPhotos(prev => prev.filter((p) => p.device_asset_id !== deletedPhotoId));
       await removePhotoFromCache(deletedPhotoId);
       setSelectedIndex(null);
     } catch (error) {
@@ -231,14 +230,16 @@ export default function Library() {
     ? Math.round((uploadProgress.current / uploadProgress.total) * 100)
     : 0;
 
+  const colors = getThemeColors(isDarkMode);
+
   return (
-    <View className="flex-1 bg-white">
+    <View className={`flex-1 ${colors.pageBg}`}>
       {/* header */}
-      <View className="bg-white pt-16 pb-3 px-4 border-b border-gray-100">
+      <View className={`${colors.headerBg} pt-16 pb-3 px-4 border-b ${colors.border}`}>
         <View className="flex-row items-center justify-between">
           <Animated.Text
             style={{ opacity: titleOpacity, position: isSearching ? 'absolute' : 'relative' }}
-            className="text-3xl font-extrabold text-gray-900 tracking-tight"
+            className={`text-3xl font-extrabold tracking-tight ${colors.title}`}
           >
             Photos
           </Animated.Text>
@@ -247,12 +248,12 @@ export default function Library() {
             <Animated.View style={{ width: searchWidth, opacity: searchOpacity }}>
               <TextInput
                 placeholder="Search your photos..."
-                placeholderTextColor="#aaa"
+                placeholderTextColor={colors.inputPlaceholder}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 onSubmitEditing={handleSearch}
                 autoFocus
-                className="bg-gray-100 rounded-xl px-4 py-3 text-gray-900 text-base"
+                className={`${colors.inputBg} rounded-xl px-4 py-3 ${colors.inputText} text-base`}
                 editable={!searchLoading}
               />
             </Animated.View>
@@ -261,11 +262,11 @@ export default function Library() {
           <View className="flex-row items-center">
             {!isSearching ? (
               <Pressable onPress={toggleSearch}>
-                <Ionicons name="search" size={20} color="#111" />
+                <Ionicons name="search" size={20} color={colors.icon} />
               </Pressable>
             ) : (
               <Pressable onPress={toggleSearch} className="px-1 py-1">
-                <Text className="text-base font-medium text-gray-900">Cancel</Text>
+                <Text className={`text-base font-medium ${colors.title}`}>Cancel</Text>
               </Pressable>
             )}
           </View>
@@ -273,7 +274,7 @@ export default function Library() {
 
         {/* photo count */}
         {!isSearching && (
-          <Text className="text-xs text-gray-400 mt-0.5">
+          <Text className={`text-xs mt-0.5 ${colors.count}`}>
             {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
           </Text>
         )}
@@ -283,32 +284,31 @@ export default function Library() {
       {uploadProgress && (
         <Pressable
           onPress={() => router.push('/upload')}
-          className="mx-3 mt-2 mb-1 bg-[#F0F4FF] rounded-2xl px-4 py-3 active:opacity-70"
+          className="mx-3 mt-2 mb-1 bg-[#F5F5F5] rounded-2xl px-4 py-3 active:opacity-70"
         >
           <View className="flex-row items-center justify-between mb-2">
             <View className="flex-row items-center">
               {uploadProgress.done ? (
                 <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
               ) : (
-                <ActivityIndicator size="small" color="#3B5BDB" />
+                <ActivityIndicator size="small" color="#52525B" />
               )}
               <Text
                 className={`font-semibold text-sm ml-2 ${
-                  uploadProgress.done ? 'text-green-600' : 'text-[#3B5BDB]'
+                  uploadProgress.done ? 'text-green-600' : 'text-[#52525B]'
                 }`}
               >
                 {uploadProgress.done
                   ? `${uploadProgress.total} photo${uploadProgress.total !== 1 ? 's' : ''} added`
-                  : `Uploading… ${uploadProgress.current}/${uploadProgress.total}`}
+                  : `Uploading... ${uploadProgress.current}/${uploadProgress.total}`}
               </Text>
             </View>
-            <Text className="text-[#6681E0] text-xs">Tap to view</Text>
+            <Text className="text-[#737373] text-xs">Tap to view</Text>
           </View>
 
-          {/* Bar */}
-          <View className="h-1.5 bg-[#D9E2FF] rounded-full overflow-hidden">
+          <View className="h-1.5 bg-[#D4D4D8] rounded-full overflow-hidden">
             <View
-              className={`h-full rounded-full ${uploadProgress.done ? 'bg-[#22C55E]' : 'bg-[#3B5BDB]'}`}
+              className={`h-full rounded-full ${uploadProgress.done ? 'bg-[#22C55E]' : 'bg-[#52525B]'}`}
               style={{ width: `${uploadPct}%` }}
             />
           </View>
@@ -318,8 +318,8 @@ export default function Library() {
       {/* photo grid or loading */}
       {searchLoading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#000000" />
-          <Text className="mt-3 text-base text-gray-500">Searching…</Text>
+          <ActivityIndicator size="large" color={colors.loading} />
+          <Text className={`mt-3 text-base ${colors.loadingText}`}>Searching...</Text>
         </View>
       ) : (
         <FlatList
@@ -349,3 +349,4 @@ export default function Library() {
     </View>
   );
 }
+
