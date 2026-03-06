@@ -58,7 +58,7 @@ export default function Signup() {
 
       <Pressable
         className="mt-4 items-center"
-        onPress={() => router.push('/login')}
+        onPress={() => router.push('(auth)')}
       >
         <Text className={colors.footer}>Already have an account? Login</Text>
       </Pressable>

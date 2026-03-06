@@ -31,7 +31,7 @@ export default function Profile() {
           style: 'destructive',
           onPress: async () => {
             await supabase.auth.signOut();
-            router.replace('/auth/login');
+            router.replace('/(auth)');
           },
         },
       ]
@@ -213,7 +213,8 @@ export default function Profile() {
         <View className="mx-3 mb-8">
           <Pressable
             onPress={handleSignOut}
-            className="bg-red-50 rounded-2xl px-4 py-4 active:bg-red-100"
+            className="rounded-2xl px-4 py-4"
+            //className="bg-red-50 rounded-2xl px-4 py-4 active:bg-red-100"
           >
             <View className="flex-row items-center justify-center">
               <Ionicons name="log-out-outline" size={20} color="#DC2626" />
