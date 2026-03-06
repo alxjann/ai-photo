@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { login } from '../../service/auth/authService.js';
 import { useThemeContext } from '../../context/ThemeContext.jsx';
 import { getThemeColors } from '../../theme/appColors.js';
 
 export default function Login() {
   const { isDarkMode } = useThemeContext();
-  const colors = getThemeColors(isDarkMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const dark = isDarkMode;
+  const colors = getThemeColors(isDarkMode);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -24,43 +28,87 @@ export default function Login() {
   };
 
   return (
-    <View className={`flex-1 px-6 justify-center ${colors.pageBg}`}>
-      <Text className={`text-3xl font-bold mb-8 ${colors.title}`}>Welcome Back</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className={`flex-1 justify-center items-center px-5 ${dark ? 'bg-zinc-900' : 'bg-gray-100'}`}
+    >
+      < View className={`w-full rounded-3xl border p-8 ${dark ? 'bg-zinc-800 border-zinc-700' : 'bg-white border-gray-200'}`}>
 
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor={colors.inputPlaceholder}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        className={`border rounded-xl px-4 py-3 mb-4 ${colors.inputBorder} ${colors.inputText} ${colors.inputBg}`}
-      />
+        {/* Header */}
+        <Text className={`text-3xl font-bold mb-2 ${dark ? 'text-white' : 'text-zinc-900'}`}>
+          Welcome Back
+        </Text>
+        <Text className={`text-base mb-10 ${dark ? 'text-zinc-400' : 'text-gray-500'}`}>
+          Login to continue
+        </Text>
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor={colors.inputPlaceholder}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        className={`border rounded-xl px-4 py-3 mb-6 ${colors.inputBorder} ${colors.inputText} ${colors.inputBg}`}
-      />
+        {/* Email Input */}
+        <View className={`flex-row items-center rounded-2xl mb-5 px-5 h-[60px] border ${dark ? 'bg-zinc-700 border-zinc-600' : 'bg-gray-100 border-gray-200'}`}>
+          <Ionicons name="mail-outline" size={20} color={dark ? '#a1a1aa' : '#9ca3af'} />
+          <TextInput
+            className={`flex-1 ml-3 text-base ${dark ? 'text-white' : 'text-zinc-900'}`}
+            placeholder="Email"
+            placeholderTextColor={dark ? '#71717a' : '#9ca3af'}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+        </View>
 
-      <Pressable
-        className={`rounded-xl py-4 items-center ${colors.button}`}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text className={`font-semibold ${colors.buttonText}`}>{loading ? 'Logging in...' : 'Login'}</Text>
-      </Pressable>
+        {/* Password Input */}
+        <View className={`flex-row items-center rounded-2xl mb-3 px-5 h-[60px] border ${dark ? 'bg-zinc-700 border-zinc-600' : 'bg-gray-100 border-gray-200'}`}>
+          <Ionicons name="lock-closed-outline" size={20} color={dark ? '#a1a1aa' : '#9ca3af'} />
+          <TextInput
+            className={`flex-1 ml-3 text-base ${dark ? 'text-white' : 'text-zinc-900'}`}
+            placeholder="Password"
+            placeholderTextColor={dark ? '#71717a' : '#9ca3af'}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!isPasswordVisible}
+          />
+          <Pressable onPress={() => setIsPasswordVisible(!isPasswordVisible)} className="p-2">
+            <Ionicons
+              name={isPasswordVisible ? 'eye-outline' : 'eye-off-outline'}
+              size={20}
+              color={dark ? '#a1a1aa' : '#9ca3af'}
+            />
+          </Pressable>
+        </View>
 
-      <Pressable
-        className="mt-4 items-center"
-        onPress={() => router.push('/signup')}
-      >
-        <Text className={colors.footer}>Don't have an account? Sign up</Text>
-      </Pressable>
-    </View>
+        {/* Forgot Password */}
+        <Pressable className="self-end mb-6">
+          <Text className={`text-sm ${dark ? 'text-zinc-400' : 'text-gray-500'}`}>
+            Forgot Password?
+          </Text>
+        </Pressable>
+
+        {/* Login Button */}
+        <Pressable
+          onPress={handleLogin}
+          disabled={loading}
+          className={`h-14 rounded-full items-center justify-center mb-8 ${colors.button}`}
+        >
+          {({ pressed }) => (
+            <Text className={`text-lg font-semibold ${colors.buttonText}`} style={{ opacity: pressed ? 0.7 : 1 }}>
+              {loading ? 'Logging in...' : 'Login'}
+            </Text>
+          )}
+        </Pressable>
+
+        {/* Sign Up Link */}
+        <View className="flex-row justify-center items-center">
+          <Text className={`text-sm ${dark ? 'text-zinc-400' : 'text-gray-500'}`}>
+            Don't have an account?{' '}
+          </Text>
+          <Pressable onPress={() => router.push('/signup')}>
+            <Text className={`text-sm font-semibold ${dark ? 'text-white' : 'text-zinc-900'}`}>
+              Sign Up
+            </Text>
+          </Pressable>
+        </View>
+
+      </View>
+    </KeyboardAvoidingView>
   );
 }
-
