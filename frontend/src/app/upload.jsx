@@ -38,8 +38,17 @@ export default function Upload() {
     });
 
     if (!result.canceled) {
-      // populate selection preview (do not upload yet)
-      setSelectedAssets(result.assets || []);
+      // photo selection preview
+      // append new selections to existing ones instead of replacing
+      const newAssets = result.assets || [];
+      setSelectedAssets((prev) => {
+        const existingUris = new Set(prev.map((a) => a.uri));
+        const merged = [...prev];
+        newAssets.forEach((a) => {
+          if (!existingUris.has(a.uri)) merged.push(a);
+        });
+        return merged;
+      });
     }
   };
 
@@ -161,11 +170,11 @@ export default function Upload() {
             </ScrollView>
 
             <View className="flex-row mt-3 px-1">
-              <Pressable onPress={uploadSelected} className="flex-1 bg-[#52525B] rounded-2xl p-3 mr-3 items-center justify-center active:opacity-80">
+              <Pressable onPress={uploadSelected} className={`flex-1 ${colors.button} rounded-2xl p-3 mr-3 items-center justify-center active:opacity-80`}>
                 <Text className="text-white font-semibold">Upload Selected ({selectedAssets.length})</Text>
               </Pressable>
-              <Pressable onPress={() => setSelectedAssets([])} className={`px-4 py-3 rounded-2xl items-center justify-center ${colors.clearBtn}`}>
-                <Text className={colors.clearText}>Clear</Text>
+              <Pressable onPress={() => setSelectedAssets([])} className={`px-4 py-3 rounded-2xl items-center justify-center ${colors.button}`}>
+                <Text className="text-white font-semibold">Clear</Text>
               </Pressable>
             </View>
           </View>

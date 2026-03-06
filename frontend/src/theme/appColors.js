@@ -37,14 +37,12 @@ const DARK = {
   pickerSub: 'text-zinc-400',
   pickerCircle: 'bg-zinc-100',
   pickerCircleIcon: '#111111',
-  clearBtn: 'bg-zinc-600',
-  clearText: 'text-zinc-200',
   infoIcon: '#A1A1AA',
   infoText: 'text-zinc-400',
 
   secondaryBtn: 'bg-zinc-700',
   secondaryText: 'text-zinc-200',
-  button: 'bg-zinc-100',
+  button: 'bg-zinc-800',
   buttonText: 'text-zinc-900',
   footer: 'text-zinc-400',
 
@@ -82,7 +80,7 @@ const LIGHT = {
   icon: '#111111',
   chevron: '#9CA3AF',
   switchTrackOff: '#E5E7EB',
-  switchTrackOn: '#52525B',
+  switchTrackOn: '#000000',
   line: 'bg-gray-200',
   emptyIcon: '#C8C8C8',
   albumEmptySecondary: 'text-gray-300',
@@ -102,8 +100,6 @@ const LIGHT = {
   pickerSub: 'text-gray-500',
   pickerCircle: 'bg-[#121212]',
   pickerCircleIcon: 'white',
-  clearBtn: 'bg-gray-200',
-  clearText: 'text-gray-700',
   infoIcon: '#999999',
   infoText: 'text-gray-400',
 
