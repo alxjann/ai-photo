@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../config/supabase';
 import { useThemeContext } from '../../context/ThemeContext.jsx';
 import { getThemeColors } from '../../theme/appColors.js';
+
+const CACHE_KEY = 'photos_cache';
 
 export default function Profile() {
   const router = useRouter();
@@ -32,6 +35,28 @@ export default function Profile() {
           onPress: async () => {
             await supabase.auth.signOut();
             router.replace('/(auth)');
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearCache = () => {
+    Alert.alert(
+      'Clear Cache',
+      'This will clear all locally cached photos. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem(CACHE_KEY);
+              Alert.alert('Cache cleared', 'Local photo cache has been deleted.');
+            } catch (err) {
+              Alert.alert('Error', 'Failed to clear cache.');
+            }
           },
         },
       ]
@@ -95,7 +120,7 @@ export default function Profile() {
         </Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Account Card */}
         <View className={`mt-6 mx-3 rounded-2xl p-6 mb-6 ${colors.cardBg}`}>
           <View className="items-center">
@@ -139,9 +164,7 @@ export default function Profile() {
           <SettingsRow
             icon="trash-outline"
             label="Clear Cache"
-            onPress={() => {
-              Alert.alert('Clear Cache', 'This will free up space on your device.');
-            }}
+            onPress={handleClearCache}
             isLast
           />
         </SettingsSection>
@@ -211,11 +234,7 @@ export default function Profile() {
 
         {/* Sign Out Button */}
         <View className="mx-3 mb-8">
-          <Pressable
-            onPress={handleSignOut}
-            className="rounded-2xl px-4 py-4"
-            //className="bg-red-50 rounded-2xl px-4 py-4 active:bg-red-100"
-          >
+          <Pressable onPress={handleSignOut} className="rounded-2xl px-4 py-4">
             <View className="flex-row items-center justify-center">
               <Ionicons name="log-out-outline" size={20} color="#DC2626" />
               <Text className="text-red-600 font-semibold text-base ml-2">Sign Out</Text>
@@ -226,4 +245,3 @@ export default function Profile() {
     </View>
   );
 }
-

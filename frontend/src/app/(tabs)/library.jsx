@@ -290,7 +290,7 @@ export default function Library() {
           data={photos}
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2 }}
+          contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2, paddingBottom: 200 }}
           showsVerticalScrollIndicator={false}
           renderItem={renderPhotoItem}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
@@ -306,11 +306,15 @@ export default function Library() {
         isDeleting={isDeletingPhoto}
       />
 
-      {/* + button */}
+      {/* + button 
       <FloatingMenu
         menuAnim={menuAnim}
         appendPhoto={appendPhoto}
       />
+      
+      
+      */}
+      
     </View>
   );
 }
