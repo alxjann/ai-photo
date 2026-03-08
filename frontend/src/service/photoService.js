@@ -41,7 +41,7 @@ export const takePhoto = async () => {
 
       const data = await response.json();
       return {
-        device_asset_id: photo.device_asset_id,
+        device_asset_id: photo.id || photo.assetId || photo.device_asset_id || null,
         uri: result.assets[0].uri,
         descriptive: data.photo?.descriptive || null,
         literal: data.photo?.literal || null,
