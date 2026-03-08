@@ -1,22 +1,42 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, FlatList, Text, Pressable, TextInput, Animated, Keyboard, ActivityIndicator } from 'react-native';
+import {
+  View,
+  FlatList,
+  Text,
+  Pressable,
+  TextInput,
+  Animated,
+  Keyboard,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
-import FloatingMenu from '../../components/FloatingMenu.jsx';
 import PhotoItem from '../../components/PhotoItem.jsx';
-import { getAllPhotos, searchPhoto, deletePhoto, resolvePhotoUri } from '../../service/photoService.js';
+import {
+  getAllPhotos,
+  searchPhoto,
+  deletePhoto,
+  resolvePhotoUri,
+} from '../../service/photoService.js';
 import PhotoViewer from '../../components/PhotoViewer.jsx';
 import { usePhotoContext } from '../../context/PhotoContext.jsx';
 import { useThemeContext } from '../../context/ThemeContext.jsx';
 import { getThemeColors } from '../../theme/appColors.js';
-import { getCachedPhotos, setCachedPhotos, removePhotoFromCache } from '../../service/cacheService.js';
+import {
+  getCachedPhotos,
+  setCachedPhotos,
+  removePhotoFromCache,
+} from '../../service/cacheService.js';
 
 const numColumns = 4;
 
 export default function Library() {
-  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({ mediaTypes: 'photo' });
-  const { photos, setPhotos, appendPhoto, uploadProgress } = usePhotoContext();
+  const [permissionResponse, requestPermission] = MediaLibrary.usePermissions({
+    mediaTypes: 'photo',
+  });
+  const { photos, setPhotos, uploadProgress } = usePhotoContext();
   const { isDarkMode } = useThemeContext();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,12 +45,22 @@ export default function Library() {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
   const [filteredPhotos, setFilteredPhotos] = useState(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState([]);
+  const [isDeletingSelectedPhotos, setIsDeletingSelectedPhotos] = useState(false);
 
   const router = useRouter();
-  const menuAnim = useRef(new Animated.Value(0)).current;
   const searchAnim = useRef(new Animated.Value(0)).current;
 
   const flatListRef = useRef(null);
+
+  const sourcePhotos = filteredPhotos ?? photos;
+  const selectedCount = selectedPhotoIds.length;
+
+  const clearSelection = useCallback(() => {
+    setIsSelectionMode(false);
+    setSelectedPhotoIds([]);
+  }, []);
 
   // scroll to bottom (latest photo)
   useEffect(() => {
@@ -53,27 +83,23 @@ export default function Library() {
     if (cached && cached.length > 0) {
       // show photos from cache immediately
       const sortedCached = cached
-        .filter(photo => photo?.id)
+        .filter((photo) => photo?.id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setPhotos(sortedCached);
 
       // verify if nasa db yung photos (photo_id)
       const dbPhotos = await getAllPhotos();
-      const dbPhotoIds = new Set(dbPhotos.map(p => p.id));
-      const cachedIds = new Set(cached.map(p => p.id));
+      const dbPhotoIds = new Set(dbPhotos.map((p) => p.id));
+      const cachedIds = new Set(cached.map((p) => p.id));
 
-      // remove photos that are no longer in the database
-      const validCached = cached.filter(p => dbPhotoIds.has(p.id));
-
-      // check for photos in database but not in cache
-      const missingFromCache = dbPhotos.filter(p => !cachedIds.has(p.id));
-
+      const validCached = cached.filter((p) => dbPhotoIds.has(p.id));
+      const missingFromCache = dbPhotos.filter((p) => !cachedIds.has(p.id));
       // fetch URIs for missing photos
       const missingWithUris = await Promise.all(missingFromCache.map(resolvePhotoUri));
 
       // merge valid cached + missing photos
       const merged = [...validCached, ...missingWithUris]
-        .filter(photo => photo?.id)
+        .filter((photo) => photo?.id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
       setPhotos(merged);
@@ -118,19 +144,45 @@ export default function Library() {
     }
   };
 
-  const handlePressPhoto = useCallback((item) => {
-    const source = filteredPhotos ?? photos;
-    const index = source.findIndex(p => p.id === item.item.id);
-    if (index !== -1) setSelectedIndex(index);
-  }, [photos, filteredPhotos]);
+  const toggleSelectedPhoto = useCallback((photoId) => {
+    setSelectedPhotoIds((prev) => {
+      if (prev.includes(photoId)) return prev.filter((id) => id !== photoId);
+      return [...prev, photoId];
+    });
+  }, []);
 
-  const viewerPhotos = (filteredPhotos ?? photos).map(photo => ({ item: photo }));
+  const handlePressPhoto = useCallback(
+    ({ item }) => {
+      if (isSelectionMode) {
+        toggleSelectedPhoto(item.id);
+        return;
+      }
+
+      const index = sourcePhotos.findIndex((p) => p.id === item.id);
+      if (index !== -1) setSelectedIndex(index);
+    },
+    [isSelectionMode, sourcePhotos, toggleSelectedPhoto]
+  );
+
+  const handleLongPressPhoto = useCallback(
+    ({ item }) => {
+      if (!item?.id) return;
+      if (!isSelectionMode) {
+        setIsSelectionMode(true);
+        setSelectedPhotoIds([item.id]);
+        return;
+      }
+      toggleSelectedPhoto(item.id);
+    },
+    [isSelectionMode, toggleSelectedPhoto]
+  );
+
+  const viewerPhotos = sourcePhotos.map((photo) => ({ item: photo }));
 
   const handleDeleteSelectedPhoto = useCallback(async () => {
     if (selectedIndex === null || isDeletingPhoto) return;
 
-    const source = filteredPhotos ?? photos;
-    const photo = source[selectedIndex];
+    const photo = sourcePhotos[selectedIndex];
     if (!photo?.id) return;
 
     try {
@@ -138,10 +190,11 @@ export default function Library() {
       const deletedPhotoId = photo.id;
 
       await deletePhoto(deletedPhotoId);
-      setPhotos(prev => prev.filter((p) => p.id !== deletedPhotoId));
+      setPhotos((prev) => prev.filter((p) => p.id !== deletedPhotoId));
       if (filteredPhotos) {
-        setFilteredPhotos(prev => prev.filter((p) => p.id !== deletedPhotoId));
+        setFilteredPhotos((prev) => prev.filter((p) => p.id !== deletedPhotoId));
       }
+      setSelectedPhotoIds((prev) => prev.filter((id) => id !== deletedPhotoId));
       await removePhotoFromCache(deletedPhotoId);
       setSelectedIndex(null);
     } catch (error) {
@@ -149,9 +202,11 @@ export default function Library() {
     } finally {
       setIsDeletingPhoto(false);
     }
-  }, [isDeletingPhoto, selectedIndex, photos, filteredPhotos, setPhotos]);
+  }, [isDeletingPhoto, selectedIndex, filteredPhotos, setPhotos, sourcePhotos]);
 
   const toggleSearch = () => {
+    if (isSelectionMode) return;
+
     const toValue = isSearching ? 0 : 1;
     if (!isSearching) setIsSearching(true);
 
@@ -170,16 +225,77 @@ export default function Library() {
     });
   };
 
+  const handleDeleteSelectedPhotos = useCallback(() => {
+    if (selectedCount === 0 || isDeletingSelectedPhotos) return;
+
+    Alert.alert(
+      'Delete selected photos',
+      `Delete ${selectedCount} ${selectedCount === 1 ? 'photo' : 'photos'}? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsDeletingSelectedPhotos(true);
+              const idsToDelete = [...selectedPhotoIds];
+              const results = await Promise.allSettled(
+                idsToDelete.map(async (photoId) => {
+                  await deletePhoto(photoId);
+                  await removePhotoFromCache(photoId);
+                  return photoId;
+                })
+              );
+
+              const deletedIds = results
+                .filter((result) => result.status === 'fulfilled')
+                .map((result) => result.value);
+
+              if (deletedIds.length > 0) {
+                const deletedSet = new Set(deletedIds);
+                setPhotos((prev) => prev.filter((p) => !deletedSet.has(p.id)));
+                if (filteredPhotos) {
+                  setFilteredPhotos((prev) => prev.filter((p) => !deletedSet.has(p.id)));
+                }
+              }
+
+              const failedCount = results.length - deletedIds.length;
+              if (failedCount > 0) {
+                Alert.alert('Delete incomplete', `${failedCount} photo(s) could not be deleted.`);
+              }
+              clearSelection();
+            } catch (error) {
+              Alert.alert('Error', error.message || 'Failed to delete selected photos');
+            } finally {
+              setIsDeletingSelectedPhotos(false);
+            }
+          },
+        },
+      ]
+    );
+  }, [
+    selectedCount,
+    isDeletingSelectedPhotos,
+    selectedPhotoIds,
+    setPhotos,
+    filteredPhotos,
+    clearSelection,
+  ]);
+
   const renderPhotoItem = useCallback(
     ({ item }) => (
       <PhotoItem
         localUri={item.uri ?? null}
         numColumns={numColumns}
         onPress={handlePressPhoto}
+        onLongPress={handleLongPressPhoto}
         item={item}
+        isSelected={selectedPhotoIds.includes(item.id)}
+        selectionMode={isSelectionMode}
       />
     ),
-    [handlePressPhoto]
+    [handlePressPhoto, handleLongPressPhoto, selectedPhotoIds, isSelectionMode]
   );
 
   const titleOpacity = searchAnim.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0] });
@@ -200,55 +316,75 @@ export default function Library() {
 
   return (
     <View className={`flex-1 ${colors.pageBg}`}>
-      {/* header */}
       <View className={`${colors.headerBg} pt-16 pb-3 px-4 border-b ${colors.border}`}>
-        <View className="flex-row items-center justify-between">
-          <Animated.Text
-            style={{ opacity: titleOpacity, position: isSearching ? 'absolute' : 'relative' }}
-            className={`text-3xl font-extrabold tracking-tight ${colors.title}`}
-          >
-            Photos
-          </Animated.Text>
-
-          {isSearching && (
-            <Animated.View style={{ width: searchWidth, opacity: searchOpacity }}>
-              <TextInput
-                placeholder="Search your photos..."
-                placeholderTextColor={colors.inputPlaceholder}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                onSubmitEditing={handleSearch}
-                autoFocus
-                className={`${colors.inputBg} rounded-xl px-4 py-2 ${colors.inputText} text-base`}
-                style={{ height: 40 }}
-                editable={!searchLoading}
-              />
-            </Animated.View>
-          )}
-
-          <View className="flex-row items-center pt-2">
-            {!isSearching ? (
-              <Pressable onPress={toggleSearch}>
-                <Ionicons name="search" size={25} color={colors.icon} />
-              </Pressable>
-            ) : (
-              <Pressable onPress={toggleSearch} className="px-1 py-1">
-                <Text className={`text-base font-medium ${colors.title}`}>Cancel</Text>
-              </Pressable>
-            )}
+        {isSelectionMode ? (
+          <View className="flex-row items-center justify-between">
+            <Pressable onPress={clearSelection} className="py-1 pr-3">
+              <Text className={`text-base ${colors.title}`}>Cancel</Text>
+            </Pressable>
+            <Text className={`text-lg font-semibold ${colors.title}`}>
+              {selectedCount} selected
+            </Text>
+            <Pressable
+              onPress={handleDeleteSelectedPhotos}
+              disabled={selectedCount === 0 || isDeletingSelectedPhotos}
+              className="py-1 pl-3"
+              style={{ opacity: selectedCount === 0 || isDeletingSelectedPhotos ? 0.4 : 1 }}
+            >
+              {isDeletingSelectedPhotos ? (
+                <ActivityIndicator size="small" color="#EF4444" />
+              ) : (
+                <Text className="text-base font-semibold text-red-500">Delete</Text>
+              )}
+            </Pressable>
           </View>
-        </View>
+        ) : (
+          <View className="flex-row items-center justify-between">
+            <Animated.Text
+              style={{ opacity: titleOpacity, position: isSearching ? 'absolute' : 'relative' }}
+              className={`text-3xl font-extrabold tracking-tight ${colors.title}`}
+            >
+              Photos
+            </Animated.Text>
 
-        {/* photo count */}
-        {!isSearching && (
+            {isSearching && (
+              <Animated.View style={{ width: searchWidth, opacity: searchOpacity }}>
+                <TextInput
+                  placeholder="Search your photos..."
+                  placeholderTextColor={colors.inputPlaceholder}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onSubmitEditing={handleSearch}
+                  autoFocus
+                  className={`${colors.inputBg} rounded-xl px-4 py-2 ${colors.inputText} text-base`}
+                  style={{ height: 40 }}
+                  editable={!searchLoading}
+                />
+              </Animated.View>
+            )}
+
+            <View className="flex-row items-center pt-2">
+              {!isSearching ? (
+                <Pressable onPress={toggleSearch}>
+                  <Ionicons name="search" size={25} color={colors.icon} />
+                </Pressable>
+              ) : (
+                <Pressable onPress={toggleSearch} className="px-1 py-1">
+                  <Text className={`text-base font-medium ${colors.title}`}>Cancel</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
+
+        {!isSearching && !isSelectionMode && (
           <Text className={`text-xs mt-0.5 ${colors.count}`}>
             {photos.length} {photos.length === 1 ? 'photo' : 'photos'}
           </Text>
         )}
       </View>
 
-      {/* upload progress banner */}
-      {uploadProgress && (
+      {uploadProgress && !isSelectionMode && (
         <Pressable
           onPress={() => router.push('/upload')}
           style={{ backgroundColor: bannerBg }}
@@ -270,7 +406,9 @@ export default function Library() {
                   : `Uploading... ${uploadProgress.current}/${uploadProgress.total}`}
               </Text>
             </View>
-            <Text style={{ color: bannerSubTextColor }} className="text-xs">Tap to view</Text>
+            <Text style={{ color: bannerSubTextColor }} className="text-xs">
+              Tap to view
+            </Text>
           </View>
 
           <View
@@ -299,7 +437,7 @@ export default function Library() {
           renderItem={renderPhotoItem}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         />
-        {isSearching && (
+        {isSearching && !isSelectionMode && (
           <View className={`absolute inset-0 ${colors.pageBg}`}>
             {searchLoading ? (
               <View className="flex-1 items-center justify-center">
@@ -315,7 +453,11 @@ export default function Library() {
                 data={filteredPhotos}
                 numColumns={numColumns}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2, paddingBottom: 200 }}
+                contentContainerStyle={{
+                  paddingHorizontal: 2.5,
+                  paddingTop: 2,
+                  paddingBottom: 200,
+                }}
                 showsVerticalScrollIndicator={false}
                 renderItem={renderPhotoItem}
               />
@@ -332,14 +474,6 @@ export default function Library() {
         onDelete={handleDeleteSelectedPhoto}
         isDeleting={isDeletingPhoto}
       />
-
-      {/* + button
-      <FloatingMenu
-        menuAnim={menuAnim}
-        appendPhoto={appendPhoto}
-      />
-      */}
-
     </View>
   );
 }

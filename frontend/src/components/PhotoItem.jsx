@@ -6,7 +6,15 @@ import { useThemeContext } from '../context/ThemeContext.jsx';
 
 const { width: windowWidth } = Dimensions.get('window');
 
-function PhotoItem({ localUri, numColumns, onPress, item }) {
+function PhotoItem({
+  localUri,
+  numColumns,
+  onPress,
+  onLongPress,
+  item,
+  isSelected = false,
+  selectionMode = false,
+}) {
   const { isDarkMode } = useThemeContext();
   const size = (windowWidth - 4) / numColumns - 4;
 
@@ -17,8 +25,12 @@ function PhotoItem({ localUri, numColumns, onPress, item }) {
     onPress({ item });
   }, [onPress, item]);
 
+  const handleLongPress = useCallback(() => {
+    if (onLongPress) onLongPress({ item });
+  }, [onLongPress, item]);
+
   return (
-    <Pressable onPress={handlePress}>
+    <Pressable onPress={handlePress} onLongPress={handleLongPress} delayLongPress={180}>
       <View className={`m-0.5 overflow-hidden ${isDarkMode ? 'bg-zinc-700' : 'bg-gray-200'}`} style={{ width: size, height: size }}>
         {localUri && (
           <Image
@@ -40,6 +52,16 @@ function PhotoItem({ localUri, numColumns, onPress, item }) {
         {isGif && !isVideo && (
           <View className="absolute bottom-1 right-1 bg-black/55 rounded px-1 py-0.5">
             <Text className="text-white text-[9px] font-bold">GIF</Text>
+          </View>
+        )}
+
+        {selectionMode && (
+          <View className="absolute top-1.5 right-1.5">
+            <View
+              className={`w-5 h-5 rounded-full items-center justify-center ${isSelected ? 'bg-blue-500' : 'bg-black/35'}`}
+            >
+              {isSelected && <Ionicons name="checkmark" size={12} color="white" />}
+            </View>
           </View>
         )}
       </View>
