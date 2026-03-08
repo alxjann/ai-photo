@@ -1,8 +1,9 @@
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback } from 'react';
 import { View, Dimensions, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext.jsx';
+import { Platform } from 'react-native';
 
 const { width: windowWidth } = Dimensions.get('window');
 
@@ -18,14 +19,7 @@ function PhotoItem({
   const size = (windowWidth - 4) / numColumns - 4;
 
   const isVideo = item?.isVideo || item?.mediaType === 'video';
-  const isGif = (item?.thumbnailUri || item?.uri || '').toLowerCase().endsWith('.gif');
-
-  // prefetch previewUri so it's in memory when viewer opens
-  useEffect(() => {
-    if (item?.previewUri) {
-      Image.prefetch(item.previewUri);
-    }
-  }, [item?.previewUri]);
+  const isGif = (item?.device_asset_id || '').toLowerCase().endsWith('.gif');
 
   const handlePress = useCallback(() => {
     onPress({ item });
@@ -42,7 +36,7 @@ function PhotoItem({
         style={{ width: size, height: size }}
       >
         <Image
-          source={{ uri: item.thumbnailUri }}
+          source={{ uri: Platform.OS === 'android' ? item.device_asset_id : `ph://${item.device_asset_id}` }}
           style={{ width: size, height: size }}
           contentFit="cover"
           cachePolicy="memory-disk"

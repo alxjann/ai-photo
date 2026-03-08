@@ -18,7 +18,6 @@ import {
   getAllPhotos,
   searchPhoto,
   deletePhoto,
-  resolvePhotoUri,
 } from '../../service/photoService.js';
 import PhotoViewer from '../../components/PhotoViewer.jsx';
 import { usePhotoContext } from '../../context/PhotoContext.jsx';
@@ -48,6 +47,7 @@ export default function Library() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState([]);
   const [isDeletingSelectedPhotos, setIsDeletingSelectedPhotos] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
   const searchAnim = useRef(new Animated.Value(0)).current;
@@ -105,56 +105,45 @@ export default function Library() {
       const missingFromCache = dbPhotos.filter((p) => !cachedIds.has(p.id));
       console.log(`[4] missing from cache: ${missingFromCache.length}`);
 
-      // fetch URIs for missing photos
-      const t4 = Date.now();
-      const missingWithUris = missingFromCache.length > 0
-        ? await Promise.all(missingFromCache.map(resolvePhotoUri))
-        : [];
-      console.log(`[5] resolvePhotoUri for missing took ${Date.now() - t4}ms`);
-
-      // merge valid cached + missing photos
-      const merged = [...validCached, ...missingWithUris]
+      // merge valid cached + missing photos (no URI resolution needed)
+      const merged = [...validCached, ...missingFromCache]
         .filter((photo) => photo?.id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
       setPhotos(merged);
 
-      const t5 = Date.now();
+      const t4 = Date.now();
       await setCachedPhotos(merged);
-      console.log(`[6] setCachedPhotos took ${Date.now() - t5}ms`);
+      console.log(`[5] setCachedPhotos took ${Date.now() - t4}ms`);
 
       console.log(`[TOTAL] handleGetPhotos (cache hit) took ${Date.now() - t0}ms`);
       return;
     }
 
-    // fallback to supabase (if no photos in cache) — show photos one by one as they resolve
-    const t6 = Date.now();
-    const assets = await getAllPhotos();
-    console.log(`[7] getAllPhotos (no cache) took ${Date.now() - t6}ms — ${assets?.length ?? 0} photos`);
+    // fallback to supabase (if no photos in cache)
+    setIsLoading(true);
+    try {
+      const t5 = Date.now();
+      const assets = await getAllPhotos();
+      console.log(`[6] getAllPhotos (no cache) took ${Date.now() - t5}ms — ${assets?.length ?? 0} photos`);
 
-    if (!Array.isArray(assets) || assets.length === 0) return;
+      if (!Array.isArray(assets) || assets.length === 0) return;
 
-    const t7 = Date.now();
-    const resolved = [];
-
-    for (let i = 0; i < assets.length; i++) {
-      const result = await resolveThumbnailOnly(assets[i]);
-      if (!result) continue;
-      resolved.push(result);
-
-      const sorted = [...resolved].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      // no resolvePhotoUri needed — expo-image renders device_asset_id directly
+      const sorted = assets
+        .filter(Boolean)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setPhotos(sorted);
+
+      const t6 = Date.now();
+      await setCachedPhotos(sorted);
+      console.log(`[7] setCachedPhotos took ${Date.now() - t6}ms`);
+
+      console.log(`[TOTAL] handleGetPhotos (no cache) took ${Date.now() - t0}ms`);
+    } finally {
+      setIsLoading(false);
     }
-
-    console.log(`[8] resolved all photos one by one took ${Date.now() - t7}ms`);
-
-    await setCachedPhotos(resolved);
-    console.log(`[TOTAL] handleGetPhotos (no cache) took ${Date.now() - t0}ms`);
-
-    // generate previews in background after grid is visible
-    generatePreviewsInBackground(resolved);
   };
-
 
   useEffect(() => {
     handleGetPhotos();
@@ -166,9 +155,8 @@ export default function Library() {
       setSearchError('');
 
       const assets = await searchPhoto(searchQuery);
-      const photosWithUris = await Promise.all(assets.map(resolvePhotoUri));
 
-      const sorted = photosWithUris
+      const sorted = assets
         .filter(Boolean)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
@@ -464,16 +452,23 @@ export default function Library() {
       )}
 
       <View className="flex-1 relative">
-        <FlatList
-          ref={flatListRef}
-          data={photos}
-          numColumns={numColumns}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2, paddingBottom: 200 }}
-          showsVerticalScrollIndicator={false}
-          renderItem={renderPhotoItem}
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
-        />
+        {isLoading ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator size="large" color={colors.loading} />
+            <Text className={`mt-3 text-base ${colors.loadingText}`}>Loading photos...</Text>
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={photos}
+            numColumns={numColumns}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingHorizontal: 2.5, paddingTop: 2, paddingBottom: 200 }}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderPhotoItem}
+            onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+          />
+        )}
         {isSearching && !isSelectionMode && (
           <View className={`absolute inset-0 ${colors.pageBg}`}>
             {searchLoading ? (

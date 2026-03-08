@@ -63,6 +63,7 @@ export const processPhotos = async (photos) => {
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
     const assets = photos.map((photo) => {
+        console.log('Upload', photo)
         const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
         return { ...photo, resolvedAssetId: assetId };
     });
@@ -206,60 +207,3 @@ export const deletePhoto = async (photoId) => {
 
   return data;
 }
-
-
-const generateThumbnail = async (uri) => {
-  const result = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 300 } }],
-    { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
-  );
-  return result.uri;
-};
-
-const generatePreview = async (uri) => {
-  const result = await ImageManipulator.manipulateAsync(
-    uri,
-    [{ resize: { width: 1080 } }],
-    { compress: 0.85, format: ImageManipulator.SaveFormat.JPEG }
-  );
-  return result.uri;
-};
-
-const getPhotoLocalURI = async (assetId) => {
-    try {
-        const assetInfo = await MediaLibrary.getAssetInfoAsync(assetId);
-        return assetInfo.localUri || assetInfo.uri;
-    } catch (error) {
-        console.log("Asset not found:", assetId);
-        throw error;
-    }
-};
-
-// fetch local URI for a photo, delete from cache+db if asset no longer exists on device
-export const resolvePhotoUri = async (photo) => {
-  if (photo.thumbnailUri && photo.previewUri) return photo;
-  try {
-    const fullUri = await getPhotoLocalURI(photo.device_asset_id);
-    const [thumbnailUri, previewUri] = await Promise.all([
-      generateThumbnail(fullUri),
-      generatePreview(fullUri),
-    ]);
-    return { ...photo, fullUri, thumbnailUri, previewUri };
-  } catch (error) {
-    // verify if na delete ba talaga yung photo
-    const assetInfo = await MediaLibrary.getAssetInfoAsync(photo.device_asset_id);
-    if (assetInfo) {
-      // asset still exists, uri fetch failed for a different reason
-      console.log(`Asset ${photo.device_asset_id} still exists`);  
-      return { ...photo, fullUri: null, thumbnailUri: null, previewUri: null };
-    } else {
-    
-      console.log(`Asset ${photo.device_asset_id} confirmed deleted`);
-      // delete photo from cache and database
-      await deletePhoto(photo.id);
-      await removePhotoFromCache(photo.id);
-      return null;
-    }
-  }
-};

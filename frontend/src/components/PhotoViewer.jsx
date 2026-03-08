@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import PagerView from 'react-native-pager-view';
 import { useThemeContext } from '../context/ThemeContext.jsx';
 import { getThemeColors } from '../theme/appColors.js';
+import { Platform } from 'react-native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -128,33 +129,22 @@ export default function PhotoViewer({ visible, photos = [], initialIndex = 0, on
             }}
           >
             {photos.map((photo, index) => {
-              const previewUri = photo.item?.previewUri ?? photo.previewUri;
-              const fullUri = photo.item?.fullUri ?? photo.fullUri;
+              const uri = photo.item?.device_asset_id 
+                ? (Platform.OS === 'android' ? photo.item?.device_asset_id : `ph://${photo.item?.device_asset_id}`)
+                : null;
               const key = photo.item?.id ?? photo.id ?? index;
               const shouldRender = Math.abs(index - currentIndex) <= 3;
 
               return (
                 <View key={key} className="flex-1 justify-center items-center">
-                  {shouldRender && previewUri ? (
-                    <>
-                      {/* preview shows instantly from prefetch */}
-                      <Image
-                        source={{ uri: previewUri }}
-                        style={{ width: '100%', height: '100%', position: 'absolute' }}
-                        contentFit="contain"
-                        cachePolicy="memory-disk"
-                      />
-                      {/* full-res fades in on top once decoded */}
-                      {fullUri && (
-                        <Image
-                          source={{ uri: fullUri }}
-                          style={{ width: '100%', height: '100%', position: 'absolute' }}
-                          contentFit="contain"
-                          cachePolicy="memory-disk"
-                          transition={300}
-                        />
-                      )}
-                    </>
+                  {shouldRender && uri ? (
+                    <Image
+                      source={{ uri }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                      transition={200}
+                    />
                   ) : !shouldRender ? (
                     <View className="w-full h-full bg-black" />
                   ) : (
