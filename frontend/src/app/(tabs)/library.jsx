@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -6,30 +6,19 @@ import {
   Pressable,
   TextInput,
   Animated,
-  Keyboard,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import { useRouter } from 'expo-router';
 import PhotoItem from '../../components/PhotoItem.jsx';
-import {
-  getAllPhotos,
-  searchPhoto,
-  deletePhoto,
-  updatePhotoDescriptions,
-} from '../../service/photoService.js';
 import PhotoViewer from '../../components/PhotoViewer.jsx';
 import { usePhotoContext } from '../../context/PhotoContext.jsx';
 import { useThemeContext } from '../../context/ThemeContext.jsx';
 import { getThemeColors } from '../../theme/appColors.js';
-import {
-  getCachedPhotos,
-  setCachedPhotos,
-  removePhotoFromCache,
-  addPhotoToCache,
-} from '../../service/cacheService.js';
+import { useLibraryPhotoLoader } from '../../hooks/useLibraryPhotoLoader.js';
+import { useLibrarySearch } from '../../hooks/useLibrarySearch.js';
+import { useLibraryPhotoActions } from '../../hooks/useLibraryPhotoActions.js';
 
 const numColumns = 4;
 
@@ -39,30 +28,51 @@ export default function Library() {
   });
   const { photos, setPhotos, uploadProgress } = usePhotoContext();
   const { isDarkMode } = useThemeContext();
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState('');
-  const [selectedIndex, setSelectedIndex] = useState(null);
-  const [isDeletingPhoto, setIsDeletingPhoto] = useState(false);
-  const [filteredPhotos, setFilteredPhotos] = useState(null);
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedPhotoIds, setSelectedPhotoIds] = useState([]);
-  const [isDeletingSelectedPhotos, setIsDeletingSelectedPhotos] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
   const router = useRouter();
-  const searchAnim = useRef(new Animated.Value(0)).current;
-
   const flatListRef = useRef(null);
 
-  const sourcePhotos = filteredPhotos ?? photos;
-  const selectedCount = selectedPhotoIds.length;
+  const {
+    isSearching,
+    searchQuery,
+    setSearchQuery,
+    searchLoading,
+    searchError,
+    filteredPhotos,
+    setFilteredPhotos,
+    handleSearch,
+    toggleSearch,
+    titleOpacity,
+    searchWidth,
+    searchOpacity,
+  } = useLibrarySearch();
 
-  const clearSelection = useCallback(() => {
-    setIsSelectionMode(false);
-    setSelectedPhotoIds([]);
-  }, []);
+  const {
+    viewerPhotos,
+    selectedIndex,
+    setSelectedIndex,
+    isDeletingPhoto,
+    isSelectionMode,
+    selectedPhotoIds,
+    selectedCount,
+    isDeletingSelectedPhotos,
+    clearSelection,
+    handlePressPhoto,
+    handleLongPressPhoto,
+    handleDeleteSelectedPhoto,
+    handleDeleteSelectedPhotos,
+    handleSaveDescriptions,
+  } = useLibraryPhotoActions({
+    photos,
+    filteredPhotos,
+    setPhotos,
+    setFilteredPhotos,
+  });
+
+  const { isLoading, handleGetPhotos } = useLibraryPhotoLoader({
+    permissionResponse,
+    requestPermission,
+    setPhotos,
+  });
 
   // scroll to bottom (latest photo)
   useEffect(() => {
@@ -73,264 +83,9 @@ export default function Library() {
     }
   }, [photos]);
 
-  const handleGetPhotos = async () => {
-    const t0 = Date.now();
-
-    if (permissionResponse?.status !== 'granted') {
-      const { status } = await requestPermission();
-      if (status !== 'granted') return;
-    }
-
-    // check cache first
-    const t1 = Date.now();
-    const cached = await getCachedPhotos();
-    console.log(`[1] getCachedPhotos took ${Date.now() - t1}ms — ${cached?.length ?? 0} items`);
-
-    if (cached && cached.length > 0) {
-      // show photos from cache immediately
-      const t2 = Date.now();
-      const sortedCached = cached
-        .filter((photo) => photo?.id)
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      setPhotos(sortedCached);
-      console.log(`[2] setPhotos from cache took ${Date.now() - t2}ms — ${sortedCached.length} photos`);
-
-      // verify if nasa db yung photos (photo_id)
-      const t3 = Date.now();
-      const dbPhotos = await getAllPhotos();
-      console.log(`[3] getAllPhotos took ${Date.now() - t3}ms — ${dbPhotos?.length ?? 0} photos`);
-
-      const dbPhotoIds = new Set(dbPhotos.map((p) => p.id));
-      const cachedIds = new Set(cached.map((p) => p.id));
-
-      const validCached = cached.filter((p) => dbPhotoIds.has(p.id));
-      const missingFromCache = dbPhotos.filter((p) => !cachedIds.has(p.id));
-      console.log(`[4] missing from cache: ${missingFromCache.length}`);
-
-      // merge valid cached + missing photos (no URI resolution needed)
-      const merged = [...validCached, ...missingFromCache]
-        .filter((photo) => photo?.id)
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-      setPhotos(merged);
-
-      const t4 = Date.now();
-      await setCachedPhotos(merged);
-      console.log(`[5] setCachedPhotos took ${Date.now() - t4}ms`);
-
-      console.log(`[TOTAL] handleGetPhotos (cache hit) took ${Date.now() - t0}ms`);
-      return;
-    }
-
-    // fallback to supabase (if no photos in cache)
-    setIsLoading(true);
-    try {
-      const t5 = Date.now();
-      const assets = await getAllPhotos();
-      console.log(`[6] getAllPhotos (no cache) took ${Date.now() - t5}ms — ${assets?.length ?? 0} photos`);
-
-      if (!Array.isArray(assets) || assets.length === 0) return;
-
-      // no resolvePhotoUri needed — expo-image renders device_asset_id directly
-      const sorted = assets
-        .filter(Boolean)
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-      setPhotos(sorted);
-
-      const t6 = Date.now();
-      await setCachedPhotos(sorted);
-      console.log(`[7] setCachedPhotos took ${Date.now() - t6}ms`);
-
-      console.log(`[TOTAL] handleGetPhotos (no cache) took ${Date.now() - t0}ms`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     handleGetPhotos();
-  }, []);
-
-  const handleSearch = async () => {
-    try {
-      setSearchLoading(true);
-      setSearchError('');
-
-      const assets = await searchPhoto(searchQuery);
-
-      const sorted = assets
-        .filter(Boolean)
-        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-      setFilteredPhotos(sorted);
-    } catch (e) {
-      setFilteredPhotos(null);
-      setSearchError(e.message || 'Search failed');
-      console.error('Search error', e);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const toggleSelectedPhoto = useCallback((photoId) => {
-    setSelectedPhotoIds((prev) => {
-      if (prev.includes(photoId)) return prev.filter((id) => id !== photoId);
-      return [...prev, photoId];
-    });
-  }, []);
-
-  const handlePressPhoto = useCallback(
-    ({ item }) => {
-      if (isSelectionMode) {
-        toggleSelectedPhoto(item.id);
-        return;
-      }
-
-      const index = sourcePhotos.findIndex((p) => p.id === item.id);
-      if (index !== -1) setSelectedIndex(index);
-    },
-    [isSelectionMode, sourcePhotos, toggleSelectedPhoto]
-  );
-
-  const handleLongPressPhoto = useCallback(
-    ({ item }) => {
-      if (!item?.id) return;
-      if (!isSelectionMode) {
-        setIsSelectionMode(true);
-        setSelectedPhotoIds([item.id]);
-        return;
-      }
-      toggleSelectedPhoto(item.id);
-    },
-    [isSelectionMode, toggleSelectedPhoto]
-  );
-
-  const viewerPhotos = sourcePhotos.map((photo) => ({ item: photo }));
-
-  const handleDeleteSelectedPhoto = useCallback(async () => {
-    if (selectedIndex === null || isDeletingPhoto) return;
-
-    const photo = sourcePhotos[selectedIndex];
-    if (!photo?.id) return;
-
-    try {
-      setIsDeletingPhoto(true);
-      const deletedPhotoId = photo.id;
-
-      await deletePhoto(deletedPhotoId);
-      setPhotos((prev) => prev.filter((p) => p.id !== deletedPhotoId));
-      if (filteredPhotos) {
-        setFilteredPhotos((prev) => prev.filter((p) => p.id !== deletedPhotoId));
-      }
-      setSelectedPhotoIds((prev) => prev.filter((id) => id !== deletedPhotoId));
-      await removePhotoFromCache(deletedPhotoId);
-      setSelectedIndex(null);
-    } catch (error) {
-      console.error('Delete error:', error);
-    } finally {
-      setIsDeletingPhoto(false);
-    }
-  }, [isDeletingPhoto, selectedIndex, filteredPhotos, setPhotos, sourcePhotos]);
-
-  const handleSaveDescriptions = useCallback(
-    async ({ photoId, literal, descriptive }) => {
-      if (!photoId) throw new Error('Photo ID is required');
-
-      const updated = await updatePhotoDescriptions({ photoId, literal, descriptive });
-
-      setPhotos((prev) =>
-        prev.map((photo) => (photo.id === photoId ? { ...photo, ...updated } : photo))
-      );
-
-      if (filteredPhotos) {
-        setFilteredPhotos((prev) =>
-          prev.map((photo) => (photo.id === photoId ? { ...photo, ...updated } : photo))
-        );
-      }
-
-      await addPhotoToCache(updated);
-    },
-    [filteredPhotos, setPhotos]
-  );
-
-  const toggleSearch = () => {
-    if (isSelectionMode) return;
-
-    const toValue = isSearching ? 0 : 1;
-    if (!isSearching) setIsSearching(true);
-
-    Animated.timing(searchAnim, {
-      toValue,
-      duration: 250,
-      useNativeDriver: false,
-    }).start(() => {
-      if (toValue === 0) {
-        setIsSearching(false);
-        setSearchQuery('');
-        setFilteredPhotos(null);
-        setSearchError('');
-        Keyboard.dismiss();
-      }
-    });
-  };
-
-  const handleDeleteSelectedPhotos = useCallback(() => {
-    if (selectedCount === 0 || isDeletingSelectedPhotos) return;
-
-    Alert.alert(
-      'Delete selected photos',
-      `Delete ${selectedCount} ${selectedCount === 1 ? 'photo' : 'photos'}? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsDeletingSelectedPhotos(true);
-              const idsToDelete = [...selectedPhotoIds];
-              const results = await Promise.allSettled(
-                idsToDelete.map(async (photoId) => {
-                  await deletePhoto(photoId);
-                  await removePhotoFromCache(photoId);
-                  return photoId;
-                })
-              );
-
-              const deletedIds = results
-                .filter((result) => result.status === 'fulfilled')
-                .map((result) => result.value);
-
-              if (deletedIds.length > 0) {
-                const deletedSet = new Set(deletedIds);
-                setPhotos((prev) => prev.filter((p) => !deletedSet.has(p.id)));
-                if (filteredPhotos) {
-                  setFilteredPhotos((prev) => prev.filter((p) => !deletedSet.has(p.id)));
-                }
-              }
-
-              const failedCount = results.length - deletedIds.length;
-              if (failedCount > 0) {
-                Alert.alert('Delete incomplete', `${failedCount} photo(s) could not be deleted.`);
-              }
-              clearSelection();
-            } catch (error) {
-              Alert.alert('Error', error.message || 'Failed to delete selected photos');
-            } finally {
-              setIsDeletingSelectedPhotos(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [
-    selectedCount,
-    isDeletingSelectedPhotos,
-    selectedPhotoIds,
-    setPhotos,
-    filteredPhotos,
-    clearSelection,
-  ]);
+  }, [handleGetPhotos]);
 
   const renderPhotoItem = useCallback(
     ({ item }) => (
@@ -345,10 +100,6 @@ export default function Library() {
     ),
     [handlePressPhoto, handleLongPressPhoto, selectedPhotoIds, isSelectionMode]
   );
-
-  const titleOpacity = searchAnim.interpolate({ inputRange: [0, 0.3], outputRange: [1, 0] });
-  const searchWidth = searchAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '78%'] });
-  const searchOpacity = searchAnim.interpolate({ inputRange: [0.2, 1], outputRange: [0, 1] });
 
   const uploadPct = uploadProgress
     ? Math.round((uploadProgress.current / uploadProgress.total) * 100)
@@ -413,11 +164,11 @@ export default function Library() {
 
             <View className="flex-row items-center pt-2">
               {!isSearching ? (
-                <Pressable onPress={toggleSearch}>
+                <Pressable onPress={() => toggleSearch(isSelectionMode)}>
                   <Ionicons name="search" size={25} color={colors.icon} />
                 </Pressable>
               ) : (
-                <Pressable onPress={toggleSearch} className="px-1 py-1">
+                <Pressable onPress={() => toggleSearch(isSelectionMode)} className="px-1 py-1">
                   <Text className={`text-base font-medium ${colors.title}`}>Cancel</Text>
                 </Pressable>
               )}
