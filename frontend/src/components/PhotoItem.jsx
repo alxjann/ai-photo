@@ -36,7 +36,7 @@ function PhotoItem({
         style={{ width: size, height: size }}
       >
         <Image
-          source={{ uri: Platform.OS === 'android' ? item.device_asset_id : `ph://${item.device_asset_id}` }}
+          source={{ uri: item.uri ? item.uri : (Platform.OS === 'android' ? `content://media/external/images/media/${item.device_asset_id}` : `ph://${item.device_asset_id}`) }}
           style={{ width: size, height: size }}
           contentFit="cover"
           cachePolicy="memory-disk"

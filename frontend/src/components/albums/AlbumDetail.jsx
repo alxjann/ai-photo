@@ -67,15 +67,18 @@ export default function AlbumDetail({ album, onBack, onPhotosChange }) {
     }
   }, [selectedIndex, isDeletingPhoto, photos, onPhotosChange]);
 
-  const viewerPhotos = photos.map(p => ({ item: p, uri: p.uri ?? null }));
+  const resolveUri = useCallback((p) =>
+    p.uri ?? (Platform.OS === 'android'
+      ? `content://media/external/images/media/${p.device_asset_id}`
+      : `ph://${p.device_asset_id}`), []);
+  const viewerPhotos = photos.map(p => ({ item: { ...p, uri: resolveUri(p) } }));
 
   const renderItem = useCallback(
     ({ item }) => (
       <PhotoItem
-        localUri={item.uri ?? null}
         numColumns={GRID_COLUMNS}
         onPress={handlePressPhoto}
-        item={item}
+        item={{ ...item, uri: resolveUri(item) }}
       />
     ),
     [handlePressPhoto]
@@ -143,4 +146,3 @@ export default function AlbumDetail({ album, onBack, onPhotosChange }) {
     </View>
   );
 }
-

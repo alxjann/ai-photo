@@ -1,5 +1,6 @@
 import { useRef } from 'react';
-import { View, Text, Image, Pressable, Animated } from 'react-native';
+import { View, Text, Pressable, Animated, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getThemeColors } from '../../theme/appColors.js';
 
@@ -28,9 +29,9 @@ export default function AlbumCard({ album, onPress, isDarkMode = false }) {
         >
           {album.photos.length > 0 ? (
             <Image
-              source={{ uri: album.photos[0].uri }}
+              source={{ uri: (() => { const p = album.photos[0]; return p.uri ?? (Platform.OS === 'android' ? `content://media/external/images/media/${p.device_asset_id}` : `ph://${p.device_asset_id}`); })() }}
               style={{ width: CARD_SIZE, height: CARD_SIZE }}
-              resizeMode="cover"
+              contentFit="cover"
             />
           ) : (
             <View className="flex-1 items-center justify-center">
@@ -49,4 +50,3 @@ export default function AlbumCard({ album, onPress, isDarkMode = false }) {
     </Pressable>
   );
 }
-

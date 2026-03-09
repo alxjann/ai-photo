@@ -207,8 +207,9 @@ export default function PhotoViewer({
             }}
           >
             {photos.map((photo, index) => {
-              const uri = photo.item?.device_asset_id 
-                ? (Platform.OS === 'android' ? photo.item?.device_asset_id : `ph://${photo.item?.device_asset_id}`)
+              const assetId = photo.item?.device_asset_id;
+              const uri = assetId
+                ? (photo.item?.uri ?? (Platform.OS === 'android' ? `content://media/external/images/media/${assetId}` : `ph://${assetId}`))
                 : null;
               const key = photo.item?.id ?? photo.id ?? index;
               const shouldRender = Math.abs(index - currentIndex) <= 3;
