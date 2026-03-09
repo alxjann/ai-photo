@@ -1,13 +1,13 @@
 import { isUnexpected } from "@azure-rest/ai-inference";
 import { aiClient } from "../../config/ai.config.js";
 import OpenAI from "openai";
-const gptModel = "gpt-4o-mini";
+const gptModel = "gpt-4.1-mini";
 import dotenv from 'dotenv';
 dotenv.config();
 
 const IMAGE_PROMPT = `
 You are an expert image analysis assistant with deep knowledge of Filipino cuisine, games, anime, films, landmarks, nature, and pop culture.
-Analyze the image and produce THREE separate sections:
+Analyze the image and produce THREE separate sections. If the image is low resolution or unclear, do your best to describe what you can see — never respond with "I don't know" or refuse to analyze:
 
 RULES:
 - Do NOT repeat information across sections
@@ -89,7 +89,7 @@ export const describeImage = async (imageBuffer) => {
                             type: "image_url",
                             image_url: {
                                 url: `data:image/jpeg;base64,${imageBuffer.toString("base64")}`,
-                                detail: "low",
+                                detail: "high",
                             },
                         },
                     ],

@@ -9,7 +9,7 @@ async function rerankWithGPT(query, candidates) {
     if (!candidates || candidates.length === 0) return [];
 
     const candidateList = candidates.map((c, i) =>
-        `[${i + 1}] Tags: ${c.tags || 'none'}\nVisual: ${(c.literal || '').substring(0, 150)}\nContext: ${(c.descriptive || '').substring(0, 100)}`
+        `[${i + 1}] People: ${c.faces || 'none'}\nTags: ${c.tags || 'none'}\nVisual: ${(c.literal || '').substring(0, 150)}\nContext: ${(c.descriptive || '').substring(0, 100)}`
     ).join('\n\n');
 
     try {
@@ -75,7 +75,16 @@ export const searchImage = async (user, supabase, query) => {
 
     if (!data || data.length === 0) return { results: [], count: 0 };
 
-    const reranked = await rerankWithGPT(normalizedQuery, data);
+    // Fetch faces for matched photos (not in RPC result)
+    const photoIds = data.map(p => p.id);
+    const { data: facesData } = await supabase
+        .from('photo')
+        .select('id, faces')
+        .in('id', photoIds);
+    const facesMap = Object.fromEntries((facesData || []).map(p => [p.id, p.faces]));
+    const dataWithFaces = data.map(p => ({ ...p, faces: facesMap[p.id] || null }));
+
+    const reranked = await rerankWithGPT(normalizedQuery, dataWithFaces);
 
     return { results: reranked, count: reranked.length };
 };

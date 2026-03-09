@@ -1,6 +1,7 @@
 import { getCompressedImageBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
+import { detectFacesInImage } from './faceRecognition.js';
 
 export const processImage = async (user, supabase, image, device_asset_id) => {
     const start = Date.now();
@@ -8,7 +9,11 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
 
     const compressedImage = await getCompressedImageBuffer(image);
 
-    // Check for duplicate device_asset_id instead of phash
+    const { data: knownFaces } = await supabase
+        .from('known_face')
+        .select('name, descriptor')
+        .eq('user_id', user.id);
+
     const { data: existing } = await supabase
         .from('photo')
         .select('id')
@@ -30,9 +35,12 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
     const tags = description.substring(tagsStart + 6, categoryStart).trim().toLowerCase();
     const category = description.substring(categoryStart + 10).trim().toLowerCase();
 
-    const [descriptiveEmbedding, literalEmbedding] = await Promise.all([
+    const [descriptiveEmbedding, literalEmbedding, faces] = await Promise.all([
         generateEmbedding(descriptive),
         generateEmbedding(literal),
+        knownFaces?.length > 0
+            ? detectFacesInImage(image, knownFaces)
+            : Promise.resolve(null),
     ]);
 
     if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) {
@@ -51,6 +59,7 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
             literal,
             tags,
             category,
+            faces,
             descriptive_embedding: descriptiveEmbedding,
             literal_embedding: literalEmbedding,
         })

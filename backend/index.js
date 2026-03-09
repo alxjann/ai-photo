@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import embed from './routes/embed.js';
 import image from './routes/image.js';
 import search from './routes/search.js';
+import faces from './routes/faces.js';
 import album from './routes/album.js';
 
 dotenv.config();
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api', embed);
 app.use('/api', image);
 app.use('/api', search);
+app.use('/api', faces);
 app.use('/api', album);
 
 app.get('/', (req, res) => {

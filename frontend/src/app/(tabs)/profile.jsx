@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../config/supabase';
 import { useThemeContext } from '../../context/ThemeContext.jsx';
 import { getThemeColors } from '../../theme/appColors.js';
+import FaceRegistration from '../../components/FaceRegistration.jsx';
 
 const CACHE_KEY = 'photos_cache';
 
@@ -135,6 +136,9 @@ export default function Profile() {
             <Text className={`text-sm ${colors.textSecondary}`}>{user?.email || 'user@example.com'}</Text>
           </View>
         </View>
+
+        {/* Face Recognition */}
+        <FaceRegistration isDarkMode={isDarkMode} />
 
         {/* Appearance */}
         <SettingsSection title="Appearance">
