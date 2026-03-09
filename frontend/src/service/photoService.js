@@ -4,6 +4,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { getSession } from './auth/authService';
 import { API_URL } from '../config/api.js';
 
+export const getDisplayUri = (photo) => {
+    const assetId = photo?.assetId || photo?.device_asset_id;
+    if (Platform.OS === 'ios') {
+        console.log(photo)
+        return assetId ? `ph://${assetId}` : photo?.uri || null;
+    }
+    return photo?.uri || photo?.device_asset_id || null;
+};
+
 export const takePhoto = async () => {
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();

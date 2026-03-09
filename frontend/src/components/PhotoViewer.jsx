@@ -7,6 +7,7 @@ import { useThemeContext } from '../context/ThemeContext.jsx';
 import { getThemeColors } from '../theme/appColors.js';
 import { Platform } from 'react-native';
 import ZoomablePhoto from './ZoomablePhoto.jsx';
+import { getDisplayUri } from '../service/photoService.js';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -207,9 +208,7 @@ export default function PhotoViewer({
             }}
           >
             {photos.map((photo, index) => {
-              const uri = photo.item?.device_asset_id 
-                ? (Platform.OS === 'android' ? photo.item?.device_asset_id : `ph://${photo.item?.device_asset_id}`)
-                : null;
+              const uri = getDisplayUri(photo.item ?? photo);
               const key = photo.item?.id ?? photo.id ?? index;
               const shouldRender = Math.abs(index - currentIndex) <= 3;
 

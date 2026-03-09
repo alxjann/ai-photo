@@ -3,7 +3,7 @@ import { View, Dimensions, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeContext } from '../context/ThemeContext.jsx';
-import { Platform } from 'react-native';
+import { getDisplayUri } from '../service/photoService.js';
 
 const { width: windowWidth } = Dimensions.get('window');
 
@@ -36,7 +36,7 @@ function PhotoItem({
         style={{ width: size, height: size }}
       >
         <Image
-          source={{ uri: Platform.OS === 'android' ? item.device_asset_id : `ph://${item.device_asset_id}` }}
+          source={{ uri: getDisplayUri(item) }}
           style={{ width: size, height: size }}
           contentFit="cover"
           cachePolicy="memory-disk"
