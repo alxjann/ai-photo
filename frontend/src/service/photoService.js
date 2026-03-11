@@ -6,8 +6,8 @@ import { API_URL } from '../config/api.js';
 
 export const getDisplayUri = (photo) => {
     //if (Platform.OS === 'ios') {
-        console.log('getDisplayUri', photo);
-        console.log(photo.uri ? 'Photo uri' : 'Photo uri false')
+        //console.log('getDisplayUri', photo);
+        //console.log(photo.uri ? 'Photo uri' : 'Photo uri false')
 
         if (Platform.OS === 'android')
             return photo.uri ? photo.uri : `content://media/external/images/media/${photo.device_asset_id}`;   
@@ -39,6 +39,14 @@ export const takePhoto = async () => {
         type: 'image/jpeg',
     });
     formData.append('device_asset_id', photo.id);
+    formData.append('uri', result.assets[0].uri);
+    try {
+        const info = await MediaLibrary.getAssetInfoAsync(photo.id);
+        const creationTime = info?.creationTime ?? null;
+        if (creationTime) formData.append('creation_time', creationTime.toString());
+    } catch (e) {
+        console.log('getAssetInfoAsync failed for', photo.id, e);
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/image`, {
@@ -73,11 +81,24 @@ export const processPhotos = async (photos) => {
 
     if (!photos || photos.length === 0) throw new Error("No photos selected");
 
-    const assets = photos.map((photo) => {
+    const assets = await Promise.all(photos.map(async (photo) => {
         console.log('Upload', photo)
         const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
-        return { ...photo, resolvedAssetId: assetId };
-    });
+        let uri = photo.uri || null;
+        let creationTime = null;
+        
+        try {
+            const info = await MediaLibrary.getAssetInfoAsync(assetId);
+            uri = info?.localUri || info?.uri || null;
+            creationTime = info?.creationTime ?? null;
+
+            console.log('Resolved URI for', assetId, uri);
+        } catch (e) {
+            console.log('getAssetInfoAsync failed for', assetId, e);
+        }
+        
+        return { ...photo, resolvedAssetId: assetId, uri, creationTime };
+    }));
 
     const formData = new FormData();
 
@@ -88,6 +109,8 @@ export const processPhotos = async (photos) => {
             type: 'image/jpeg',
         });
         formData.append('device_asset_id', assets[0].resolvedAssetId);
+        formData.append('uri', assets[0].uri);
+        if (assets[0].creationTime) formData.append('creation_time', assets[0].creationTime.toString());
     } else {
         assets.forEach((photo, index) => {
             formData.append('images', {
@@ -96,6 +119,8 @@ export const processPhotos = async (photos) => {
                 type: 'image/jpeg',
             });
             formData.append('device_asset_id', photo.resolvedAssetId);
+            formData.append('uri', photo.uri);
+            if (photo.creationTime) formData.append('creation_time', photo.creationTime.toString());
         });
     }
 

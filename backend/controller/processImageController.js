@@ -11,11 +11,18 @@ export const processImageController = async (req, res) => {
         if (!req.file) return res.status(400).json({ error: 'No image file provided' });
 
         console.log('device_asset_id received:', req.body.device_asset_id);
+        console.log('body:', req.body)
 
         const manualDescription = req.body.manualDescription || null;
         const device_asset_id = req.body.device_asset_id || null;
+        // Accept optional uri field (may be string or array if multipart sends multiple)
+        const rawUri = req.body.uri;
+        const uri = Array.isArray(rawUri) ? rawUri[0] : (rawUri || null);
+        // Accept optional creation time (may be string or array)
+        const rawCreation = req.body.creation_time || req.body.creationTime;
+        const creationTime = Array.isArray(rawCreation) ? rawCreation[0] : (rawCreation || null);
 
-        const result = await processImage(user, supabase, req.file.buffer, device_asset_id, manualDescription);
+        const result = await processImage(user, supabase, req.file.buffer, device_asset_id, uri, creationTime, manualDescription);
 
         res.status(200).json({ message: 'Image processed successfully', photo: result });
     } catch (error) {

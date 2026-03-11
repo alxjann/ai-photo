@@ -17,7 +17,14 @@ export const batchProcessImagesController = async (req, res) => {
             ? req.body.device_asset_id
             : [req.body.device_asset_id];
 
-        const { results, errors } = await batchProcessImages(user, supabase, req.files, deviceAssetIds);
+        // Optional: accept an array of URIs corresponding to each file (if client provides them)
+        const uris = Array.isArray(req.body.uri) ? req.body.uri : (req.body.uri ? [req.body.uri] : []);
+        // Optional: accept an array of creation times corresponding to each file
+        const creationTimes = Array.isArray(req.body.creation_time)
+            ? req.body.creation_time
+            : (req.body.creation_time ? [req.body.creation_time] : (req.body.creationTime ? (Array.isArray(req.body.creationTime) ? req.body.creationTime : [req.body.creationTime]) : []));
+
+        const { results, errors } = await batchProcessImages(user, supabase, req.files, deviceAssetIds, uris, creationTimes);
 
         res.status(200).json({
             message: 'Batch processing complete',

@@ -2,7 +2,7 @@ import { getCompressedImageBuffer } from '../utils/compressImage.js';
 import { describeImage } from './ai/describeImage.js';
 import { generateEmbedding } from './ai/generateEmbedding.js';
 
-export const processImage = async (user, supabase, image, device_asset_id) => {
+export const processImage = async (user, supabase, image, device_asset_id, uri = null, creationTime = null, manualDescription = null) => {
     const start = Date.now();
     if (!user || !user.id) throw new Error('Invalid user object or missing user.id');
 
@@ -41,19 +41,24 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
     if (!literalEmbedding || literalEmbedding.length !== 1536) {
         throw new Error(`Invalid literal embedding dimension: ${literalEmbedding?.length}`);
     }
+    const insertPayload = {
+        user_id: user.id,
+        device_asset_id,
+        asset_uri: uri,
+        descriptive,
+        literal,
+        tags,
+        category,
+        descriptive_embedding: descriptiveEmbedding,
+        literal_embedding: literalEmbedding,
+    };
+
+    if (creationTime) insertPayload.creation_time = creationTime;
+    if (manualDescription) insertPayload.manual_description = manualDescription;
 
     const { data: insertData, error: insertError } = await supabase
         .from('photo')
-        .insert({
-            user_id: user.id,
-            device_asset_id,
-            descriptive,
-            literal,
-            tags,
-            category,
-            descriptive_embedding: descriptiveEmbedding,
-            literal_embedding: literalEmbedding,
-        })
+        .insert(insertPayload)
         .select()
         .single();
 
