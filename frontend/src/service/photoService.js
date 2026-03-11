@@ -43,7 +43,7 @@ export const takePhoto = async () => {
     let creationTime = null;
     try {
         const info = await MediaLibrary.getAssetInfoAsync(photo.id);
-        creationTime = info?.creationTime ?? null;
+        creationTime = info?.creationTime ? Math.round(info.creationTime) : null;
         if (creationTime) formData.append('creation_time', creationTime.toString());
     } catch (e) {
         console.log('getAssetInfoAsync failed for', photo.id, e);
@@ -92,7 +92,7 @@ export const processPhotos = async (photos) => {
         try {
             const info = await MediaLibrary.getAssetInfoAsync(assetId);
             uri = info?.localUri || info?.uri || null;
-            creationTime = info?.creationTime ?? null;
+            creationTime = info?.creationTime ? Math.round(info.creationTime) : null;
 
             console.log('Resolved URI for', assetId, uri);
         } catch (e) {

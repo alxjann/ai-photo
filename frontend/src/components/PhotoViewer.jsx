@@ -46,6 +46,26 @@ export default function PhotoViewer({
 
   const currentPhoto = photos?.[currentIndex];
   const photoData = currentPhoto?.item ?? currentPhoto;
+  const rawCreation = photoData?.creation_time ?? photoData?.created_at ?? null;
+  const formattedCreation = (() => {
+    if (!rawCreation) return null;
+    let d = null;
+    try {
+      if (typeof rawCreation === 'number') d = new Date(rawCreation);
+      else if (/^\d+$/.test(String(rawCreation))) {
+        const n = Number(rawCreation);
+        d = n < 1e12 ? new Date(n * 1000) : new Date(n);
+      } else {
+        d = new Date(rawCreation);
+      }
+      if (isNaN(d)) return null;
+      const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      return `${date} · ${time}`;
+    } catch (e) {
+      return null;
+    }
+  })();
   const tags = photoData?.tags
     ? photoData.tags.split(',').map(t => t.trim()).filter(Boolean)
     : [];
@@ -234,6 +254,12 @@ export default function PhotoViewer({
           <Ionicons name="chevron-back" size={28} color="white" />
           <Text className="text-white text-base font-medium">Back</Text>
         </Pressable>
+
+        {formattedCreation && (
+          <View className="absolute top-14 left-0 right-0 z-50 items-center">
+            <Text className="text-white text-sm font-medium">{formattedCreation}</Text>
+          </View>
+        )}
 
         {photos.length > 1 && (
           <View className="absolute top-14 right-4 z-50 bg-black/50 rounded-full px-3 py-1">
