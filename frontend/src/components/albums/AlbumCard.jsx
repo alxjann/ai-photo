@@ -8,6 +8,7 @@ const CARD_SIZE = 180;
 export default function AlbumCard({ album, onPress, isDarkMode = false }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const colors = getThemeColors(isDarkMode);
+  const coverUri = album.coverPhoto?.uri || album.photos?.[0]?.uri || null;
 
   const handlePressIn = () =>
     Animated.spring(scaleAnim, { toValue: 0.95, useNativeDriver: true, speed: 30 }).start();
@@ -26,9 +27,9 @@ export default function AlbumCard({ album, onPress, isDarkMode = false }) {
           style={{ width: CARD_SIZE, height: CARD_SIZE }}
           className={`rounded-xl overflow-hidden ${colors.placeholderBg}`}
         >
-          {album.photos.length > 0 ? (
+          {coverUri ? (
             <Image
-              source={{ uri: album.photos[0].uri }}
+              source={{ uri: coverUri }}
               style={{ width: CARD_SIZE, height: CARD_SIZE }}
               resizeMode="cover"
             />
@@ -49,4 +50,3 @@ export default function AlbumCard({ album, onPress, isDarkMode = false }) {
     </Pressable>
   );
 }
-
