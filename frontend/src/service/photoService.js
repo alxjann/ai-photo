@@ -40,9 +40,10 @@ export const takePhoto = async () => {
     });
     formData.append('device_asset_id', photo.id);
     formData.append('uri', result.assets[0].uri);
+    let creationTime = null;
     try {
         const info = await MediaLibrary.getAssetInfoAsync(photo.id);
-        const creationTime = info?.creationTime ?? null;
+        creationTime = info?.creationTime ?? null;
         if (creationTime) formData.append('creation_time', creationTime.toString());
     } catch (e) {
         console.log('getAssetInfoAsync failed for', photo.id, e);
@@ -69,6 +70,7 @@ export const takePhoto = async () => {
         category: data.photo?.category,
         tags: data.photo?.tags,
         created_at: data.photo?.created_at || null,
+        creation_time: data.photo?.creation_time || creationTime || null,
       };
     } catch (error) {
         console.log("Upload failed", error);

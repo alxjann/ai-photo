@@ -86,6 +86,7 @@ export default function Upload() {
             category: res.photo.category,
             tags: res.photo.tags,
             created_at: res.photo.created_at || null,
+            creation_time: res.photo.creation_time || null,
           };
           appendPhoto(newPhoto);
           await addPhotoToCache([newPhoto]);
@@ -106,7 +107,8 @@ export default function Upload() {
               id: r.photo.id || null,
               category: r.photo.category,
               tags: r.photo.tags,
-              created_at: r.photo.created_at || null,
+                created_at: r.photo.created_at || null,
+                creation_time: r.photo.creation_time || null,
             };
           })
           .filter(Boolean);
