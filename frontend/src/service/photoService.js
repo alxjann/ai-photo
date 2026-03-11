@@ -5,12 +5,16 @@ import { getSession } from './auth/authService';
 import { API_URL } from '../config/api.js';
 
 export const getDisplayUri = (photo) => {
-    const assetId = photo?.assetId || photo?.device_asset_id;
-    if (Platform.OS === 'ios') {
-        console.log(photo)
-        return assetId ? `ph://${assetId}` : photo?.uri || null;
-    }
-    return photo?.uri || photo?.device_asset_id || null;
+    //if (Platform.OS === 'ios') {
+        console.log('getDisplayUri', photo);
+        console.log(photo.uri ? 'Photo uri' : 'Photo uri false')
+
+        if (Platform.OS === 'android')
+            return photo.uri ? photo.uri : `content://media/external/images/media/${photo.device_asset_id}`;   
+        else
+            return `ph://${photo.device_asset_id}`;
+    //}
+    //return photo?.uri || photo?.device_asset_id || null;
 };
 
 export const takePhoto = async () => {
