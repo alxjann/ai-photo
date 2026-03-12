@@ -239,28 +239,29 @@ export default function Upload() {
 
         {/* upload progress card */}
         {isUploading && (
-          <View className="mb-4 p-5 bg-[#F5F5F5] rounded-2xl">
+          <View className={`mb-4 p-5 rounded-2xl ${colors.cardBg}`}>
             <View className="flex-row items-center mb-4">
-              <View className="w-10 h-10 rounded-full bg-[#52525B] items-center justify-center mr-3">
-                <ActivityIndicator size="small" color="white" />
+              <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${colors.iconBg}`}>
+                <ActivityIndicator size="small" color={colors.iconColor} />
               </View>
               <View className="flex-1">
-                <Text className="text-[#52525B] font-bold text-base">
+                <Text className={`font-bold text-base ${colors.textPrimary}`}>
                   Analyzing your photos
                 </Text>
-                <Text className="text-[#737373] text-sm mt-0.5">
+                <Text className={`text-sm mt-0.5 ${colors.textSecondary}`}>
                   AI is describing and indexing your images
                 </Text>
               </View>
-              <Text className="text-[#52525B] font-bold text-base ml-2">
+              <Text className={`font-bold text-base ml-2 ${colors.textPrimary}`}>
                 {pct}%
               </Text>
             </View>
 
-            <View className="h-2 bg-[#D4D4D8] rounded-full overflow-hidden">
+            <View className={`h-2 rounded-full overflow-hidden ${colors.line}`}>
               <Animated.View
-                className="h-full bg-[#52525B] rounded-full"
+                className="h-full rounded-full"
                 style={{
+                  backgroundColor: colors.iconColor,
                   width: progressAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: ['0%', '100%'],
@@ -270,10 +271,10 @@ export default function Upload() {
             </View>
 
             <View className="flex-row justify-between mt-2">
-              <Text className="text-[#737373] text-xs">
+              <Text className={`text-xs ${colors.textSecondary}`}>
                 {uploadProgress.current} of {uploadProgress.total} photo{uploadProgress.total !== 1 ? 's' : ''} done
               </Text>
-              <Text className="text-[#737373] text-xs">
+              <Text className={`text-xs ${colors.textSecondary}`}>
                 {uploadProgress.total - uploadProgress.current} remaining
               </Text>
             </View>
@@ -283,22 +284,22 @@ export default function Upload() {
         )}
         
         {isDone && (
-          <View className="mb-4 p-5 bg-[#F0FFF4] rounded-2xl">
+          <View className={`mb-4 p-5 rounded-2xl ${colors.cardBg}`}>
             <View className="flex-row items-center">
-              <View className="w-10 h-10 rounded-full bg-[#22C55E] items-center justify-center mr-3">
-                <Ionicons name="checkmark" size={22} color="white" />
+              <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${colors.iconBg}`}>
+                <Ionicons name="checkmark" size={22} color={colors.iconColor} />
               </View>
               <View className="flex-1">
-                <Text className="text-green-700 font-bold text-base">
+                <Text className={`font-bold text-base ${colors.textPrimary}`}>
                   All done!
                 </Text>
-                <Text className="text-green-600 text-sm mt-0.5">
+                <Text className={`text-sm mt-0.5 ${colors.textSecondary}`}>
                   {uploadProgress.total} photo{uploadProgress.total !== 1 ? 's' : ''} added to your library
                 </Text>
               </View>
             </View>
-            <View className="h-2 bg-green-100 rounded-full overflow-hidden mt-4">
-              <View className="h-full bg-[#22C55E] rounded-full w-full" />
+            <View className={`h-2 rounded-full overflow-hidden mt-4 ${colors.line}`}>
+              <View className="h-full rounded-full w-full" style={{ backgroundColor: colors.iconColor }} />
             </View>
           </View>
         )}
