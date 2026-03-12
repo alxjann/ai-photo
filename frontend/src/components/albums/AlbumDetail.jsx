@@ -33,6 +33,7 @@ export default function AlbumDetail({
   const insets = useSafeAreaInsets();
   const { isDarkMode } = useThemeContext();
   const colors = getThemeColors(isDarkMode);
+  const isCategoryAlbum = Boolean(album?.isCategory);
   const orderedPhotos = useMemo(() => {
     if (!Array.isArray(album?.photo_ids) || album.photo_ids.length === 0) {
       return album.photos || [];
@@ -223,18 +224,22 @@ export default function AlbumDetail({
           </Animated.Text>
 
           <View className="w-[90px] flex-row items-center justify-end">
-            <Pressable
-              onPress={onAddPhotos}
-              disabled={!canAddPhotos}
-              hitSlop={12}
-              className="px-1"
-              style={{ opacity: canAddPhotos ? 1 : 0.4 }}
-            >
-              <Ionicons name="add" size={26} color={canAddPhotos ? colors.icon : '#9CA3AF'} />
-            </Pressable>
-            <Pressable onPress={onOpenMenu} hitSlop={12} className="px-1">
-              <Ionicons name="ellipsis-horizontal" size={22} color={colors.icon} />
-            </Pressable>
+            {!isCategoryAlbum && (
+              <>
+                <Pressable
+                  onPress={onAddPhotos}
+                  disabled={!canAddPhotos}
+                  hitSlop={12}
+                  className="px-1"
+                  style={{ opacity: canAddPhotos ? 1 : 0.4 }}
+                >
+                  <Ionicons name="add" size={26} color={canAddPhotos ? colors.icon : '#9CA3AF'} />
+                </Pressable>
+                <Pressable onPress={onOpenMenu} hitSlop={12} className="px-1">
+                  <Ionicons name="ellipsis-horizontal" size={22} color={colors.icon} />
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       )}

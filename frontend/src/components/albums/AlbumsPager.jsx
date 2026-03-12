@@ -8,9 +8,13 @@ export default function AlbumsPager({
   screenWidth,
   onPageChange,
 }) {
+  const hasTwoRows = albumPages.some((page) => page.length > 2);
+  // 1 row height ~= 180 (card) + 2 lines text + margins + page padding.
+  const pagerHeight = hasTwoRows ? 468 : 246;
+
   return (
     <View>
-      <View className="h-[468px]">
+      <View style={{ height: pagerHeight }}>
         <FlatList
           data={albumPages}
           horizontal

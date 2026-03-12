@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { View, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Animated, ActivityIndicator } from 'react-native';
 import { usePhotoContext } from '../../context/PhotoContext.jsx';
 import { useThemeContext } from '../../context/ThemeContext.jsx';
 import { getThemeColors } from '../../theme/appColors.js';
@@ -16,6 +16,7 @@ import RenameAlbumModal from '../../components/albums/RenameAlbumModal.jsx';
 import useAlbums from '../../hooks/useAlbums.js';
 
 const CREATE_COLUMNS = 4;
+const CATEGORY_ORDER = ['food', 'nature', 'animals', 'people', 'travel'];
 
 export default function Albums() {
   const { photos, setPhotos } = usePhotoContext();
@@ -66,10 +67,38 @@ export default function Albums() {
     handleDeleteAlbum,
   } = useAlbums({ photos, setPhotos });
 
+  // --- Auto category albums (from paste 1) ---
+  const categoryAlbums = useMemo(() => {
+    const grouped = {};
+    for (const photo of photos) {
+      const category = photo.category?.toLowerCase();
+      if (!category || category === 'none') continue;
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push(photo);
+    }
+    return CATEGORY_ORDER
+      .filter(cat => grouped[cat]?.length > 0)
+      .map(cat => ({
+        id: `category_${cat}`,
+        name: cat.charAt(0).toUpperCase() + cat.slice(1),
+        photos: grouped[cat],
+        isCategory: true,
+      }));
+  }, [photos]);
+
+  const categoryAlbumColumns = useMemo(() => {
+    const cols = [];
+    for (let i = 0; i < categoryAlbums.length; i += 2) {
+      cols.push(categoryAlbums.slice(i, i + 2));
+    }
+    return cols;
+  }, [categoryAlbums]);
+  // -------------------------------------------
+
   const renderAlbumPage = useCallback(
     ({ item: page }) => (
       <View className="w-screen px-4 pt-5 pb-3">
-        <View className="flex-row justify-between mb-3">
+        <View className={`flex-row justify-between ${page.length > 2 ? 'mb-3' : ''}`}>
           {page.slice(0, 2).map((album) => (
             <View key={album.id} className="w-[180px]">
               <AlbumCard album={album} onPress={handleOpenAlbum} isDarkMode={isDarkMode} />
@@ -77,14 +106,16 @@ export default function Albums() {
           ))}
           {page.length === 1 && <View className="w-[180px]" />}
         </View>
-        <View className="flex-row justify-between">
-          {page.slice(2, 4).map((album) => (
-            <View key={album.id} className="w-[180px]">
-              <AlbumCard album={album} onPress={handleOpenAlbum} isDarkMode={isDarkMode} />
-            </View>
-          ))}
-          {page.length === 3 && <View className="w-[180px]" />}
-        </View>
+        {page.length > 2 && (
+          <View className="flex-row justify-between">
+            {page.slice(2, 4).map((album) => (
+              <View key={album.id} className="w-[180px]">
+                <AlbumCard album={album} onPress={handleOpenAlbum} isDarkMode={isDarkMode} />
+              </View>
+            ))}
+            {page.length === 3 && <View className="w-[180px]" />}
+          </View>
+        )}
       </View>
     ),
     [handleOpenAlbum, isDarkMode]
@@ -140,17 +171,53 @@ export default function Albums() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colors.loading} />
         </View>
-      ) : albums.length === 0 ? (
+      ) : albums.length === 0 && categoryAlbums.length === 0 ? (
         <AlbumsEmptyState colors={colors} isRefreshing={isRefreshing} onRefresh={() => loadAlbums(true)} />
       ) : (
-        <AlbumsPager
-          albumPages={albumPages}
-          renderAlbumPage={renderAlbumPage}
-          currentPage={currentAlbumPage}
-          colors={colors}
-          screenWidth={screenWidth}
-          onPageChange={setCurrentAlbumPage}
-        />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 32 }}
+        >
+          {/* Custom Albums (pager) */}
+          {albums.length > 0 && (
+            <AlbumsPager
+              albumPages={albumPages}
+              renderAlbumPage={renderAlbumPage}
+              currentPage={currentAlbumPage}
+              colors={colors}
+              screenWidth={screenWidth}
+              onPageChange={setCurrentAlbumPage}
+            />
+          )}
+
+          {/* Divider + Category Albums */}
+          {categoryAlbums.length > 0 && (
+            <>
+              {/* Horizontal scroll of category album cards */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}
+              >
+                {categoryAlbumColumns.map((col, i) => (
+                  <View
+                    key={i}
+                    style={{ gap: 12, marginRight: i < categoryAlbumColumns.length - 1 ? 12 : 0 }}
+                  >
+                    {col.map(album => (
+                      <AlbumCard
+                        key={album.id}
+                        album={album}
+                        onPress={handleOpenAlbum}
+                        isDarkMode={isDarkMode}
+                      />
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          )}
+        </ScrollView>
       )}
 
       {openAlbum && (
