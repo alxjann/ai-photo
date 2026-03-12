@@ -107,32 +107,6 @@ export const processPhotos = async (photos) => {
     }
 
     return data;
-
-/* wait
-    if (response.status === 409 || data.error === 'Duplicate image') {
-        return { added: [], duplicates: assets.length };
-    }
-
-    if (!response.ok) {
-        console.error('processPhotos error:', data);
-        return { added: [], duplicates: 0 };
-    }
-
-    if (assets.length === 1) {
-        return {
-            added: [{ id: data.photo?.id, uri: assets[0].uri }],
-            duplicates: 0
-        };
-    }
-    const successfulResults = data.results || [];
-    const added = successfulResults.map(r => ({
-        id: r.photo?.id,
-        device_asset_id: assets[r.index].resolvedAssetId,
-        uri: assets[r.index].resolvedUri,
-        uri: assets[r.index].uri,
-    }));
-    return { added, duplicates: assets.length - added.length };
-*/
 };
 
 export const getAllPhotos = async () => {
