@@ -1,4 +1,4 @@
-import { createSupabaseClient } from "../config/supabase.js";
+import { createSupabaseClient, getUserFromToken } from "../config/supabase.js";
 
 export const getClientAuthToken = (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
@@ -8,5 +8,7 @@ export const getClientAuthToken = (req, res) => {
         return null;
     }
 
-    return createSupabaseClient(token);
-} 
+    return { supabase: createSupabaseClient(token), token };
+}
+
+export { getUserFromToken };

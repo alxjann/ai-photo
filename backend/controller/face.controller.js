@@ -1,12 +1,14 @@
 import { registerFace, detectFacesInImage } from '../services/face.service.js';
-import { getClientAuthToken } from '../utils/getClientAuthToken.js';
+import { getClientAuthToken, getUserFromToken } from '../utils/getClientAuthToken.js';
 
 // POST /api/faces/register
 export const registerFaceController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
-        const { data: { user } } = await supabase.auth.getUser();
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
+
+        const user = await getUserFromToken(token);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         if (!req.file) return res.status(400).json({ error: 'No image provided' });
 
@@ -36,9 +38,11 @@ export const registerFaceController = async (req, res) => {
 // GET /api/faces
 export const getKnownFacesController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
-        const { data: { user } } = await supabase.auth.getUser();
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
+
+        const user = await getUserFromToken(token);
 
         const { data, error } = await supabase
             .from('known_face')
@@ -56,9 +60,11 @@ export const getKnownFacesController = async (req, res) => {
 // DELETE /api/faces/:id
 export const deleteFaceController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
-        const { data: { user } } = await supabase.auth.getUser();
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
+
+        const user = await getUserFromToken(token);
 
         const { error } = await supabase
             .from('known_face')

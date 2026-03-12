@@ -8,15 +8,16 @@ import {
     searchPhotos,
     updatePhotoDescriptions,
 } from '../services/photo.service.js';
-import { getClientAuthToken } from '../utils/getClientAuthToken.js';
+import { getClientAuthToken, getUserFromToken } from '../utils/getClientAuthToken.js';
 
 export const getAllPhotosController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        if (!supabase) return;
-
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
         const result = await getAllPhotos(user, supabase);
         res.status(200).json({
@@ -24,6 +25,7 @@ export const getAllPhotosController = async (req, res) => {
             result
         });
     } catch (error) {
+        console.error('getAllPhotos error:', error);
         res.status(500).json({
             error: 'Failed to fetch photos',
             details: error.message,
@@ -33,12 +35,12 @@ export const getAllPhotosController = async (req, res) => {
 
 export const getPhotoController = async (req, res) => {
     try {
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        const supabase = getClientAuthToken(req, res);
-
-        if (!supabase) return;
-
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
         const { id } = req.params;
 
@@ -56,11 +58,12 @@ export const getPhotoController = async (req, res) => {
 
 export const deletePhotoController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        if (!supabase) return;
-
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
         const { id } = req.params;
 
         if (!id) {
@@ -85,10 +88,11 @@ export const deletePhotoController = async (req, res) => {
 
 export const processPhotoController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
         if (!req.file) return res.status(400).json({ error: 'No image file provided' });
 
@@ -110,10 +114,12 @@ export const processPhotoController = async (req, res) => {
 
 export const batchProcessPhotosController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
+        if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
         if (!req.files || req.files.length === 0)
             return res.status(400).json({ error: 'No image files provided' });
@@ -166,10 +172,11 @@ export const reprocessPhotoController = async (req, res) => {
 
 export const searchPhotosController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
         const { query } = req.body;
@@ -191,10 +198,11 @@ export const searchPhotosController = async (req, res) => {
 
 export const updatePhotoDescriptionsController = async (req, res) => {
     try {
-        const supabase = getClientAuthToken(req, res);
-        if (!supabase) return;
+        const auth = getClientAuthToken(req, res);
+        if (!auth) return;
+        const { supabase, token } = auth;
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getUserFromToken(token);
         if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
         const { literal, descriptive } = req.body ?? {};

@@ -1,4 +1,4 @@
-import { getClientAuthToken } from '../utils/getClientAuthToken.js';
+import { getClientAuthToken, getUserFromToken } from '../utils/getClientAuthToken.js';
 import {
   addPhotosToAlbum,
   createAlbum,
@@ -10,10 +10,11 @@ import {
 
 export const getAlbumsController = async (req, res) => {
   try {
-    const supabase = getClientAuthToken(req, res);
-    if (!supabase) return;
+    const auth = getClientAuthToken(req, res);
+    if (!auth) return;
+    const { supabase, token } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUserFromToken(token);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const albums = await getAlbums(user, supabase);
@@ -28,10 +29,11 @@ export const getAlbumsController = async (req, res) => {
 
 export const createAlbumController = async (req, res) => {
   try {
-    const supabase = getClientAuthToken(req, res);
-    if (!supabase) return;
+    const auth = getClientAuthToken(req, res);
+    if (!auth) return;
+    const { supabase, token } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUserFromToken(token);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { name, cover_photo_id: coverPhotoId = null } = req.body || {};
@@ -53,10 +55,11 @@ export const createAlbumController = async (req, res) => {
 
 export const addPhotosToAlbumController = async (req, res) => {
   try {
-    const supabase = getClientAuthToken(req, res);
-    if (!supabase) return;
+    const auth = getClientAuthToken(req, res);
+    if (!auth) return;
+    const { supabase, token } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUserFromToken(token);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { id: albumId } = req.params;
@@ -85,10 +88,11 @@ export const addPhotosToAlbumController = async (req, res) => {
 
 export const removePhotosFromAlbumController = async (req, res) => {
   try {
-    const supabase = getClientAuthToken(req, res);
-    if (!supabase) return;
+    const auth = getClientAuthToken(req, res);
+    if (!auth) return;
+    const { supabase, token } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUserFromToken(token);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { id: albumId } = req.params;
@@ -114,10 +118,11 @@ export const removePhotosFromAlbumController = async (req, res) => {
 
 export const renameAlbumController = async (req, res) => {
   try {
-    const supabase = getClientAuthToken(req, res);
-    if (!supabase) return;
+    const auth = getClientAuthToken(req, res);
+    if (!auth) return;
+    const { supabase, token } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUserFromToken(token);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { id: albumId } = req.params;
@@ -147,10 +152,11 @@ export const renameAlbumController = async (req, res) => {
 
 export const deleteAlbumController = async (req, res) => {
   try {
-    const supabase = getClientAuthToken(req, res);
-    if (!supabase) return;
+    const auth = getClientAuthToken(req, res);
+    if (!auth) return;
+    const { supabase, token } = auth;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUserFromToken(token);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     const { id: albumId } = req.params;

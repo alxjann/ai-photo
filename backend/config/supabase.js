@@ -12,6 +12,17 @@ export const createSupabaseClient = (token) => {
             headers: {
                 Authorization: `Bearer ${token}`
             }
+        },
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
         }
     });
+}
+
+export const getUserFromToken = async (token) => {
+    const adminClient = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseKey);
+    const { data: { user }, error } = await adminClient.auth.getUser(token);
+    if (error) throw error;
+    return user;
 }
