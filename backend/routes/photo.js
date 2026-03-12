@@ -7,6 +7,7 @@ import {
     processPhotoController,
     reprocessPhotoController,
     updatePhotoDescriptionsController,
+    getAllPhotosController
 } from '../controller/photo.controller.js';
 
 const router = express.Router();
@@ -21,6 +22,7 @@ router.post('/photo', upload.single('image'), processPhotoController);
 router.post('/photos/batch', upload.array('images', 50), batchProcessPhotosController);
 router.delete('/photo/:id', deletePhotoController);
 router.get('/photo/:id', getPhotoController);
+router.get('/photos', getAllPhotosController);
 router.patch('/photo/:id/descriptions', updatePhotoDescriptionsController);
 router.post('/photo/:id/reprocess', upload.single('image'), reprocessPhotoController);
 
