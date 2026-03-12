@@ -5,7 +5,7 @@ import { getCachedPhotos, setCachedPhotos } from '../service/cacheService.js';
 export const useLibraryPhotoLoader = ({ permissionResponse, requestPermission, setPhotos }) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGetPhotos = useCallback(async () => {
+  const handleGetPhotos = useCallback(async ({ forceRefresh = false } = {}) => {
     const t0 = Date.now();
 
     if (permissionResponse?.status !== 'granted') {
@@ -13,10 +13,10 @@ export const useLibraryPhotoLoader = ({ permissionResponse, requestPermission, s
       if (status !== 'granted') return;
     }
 
-    // check cache first
+    // check cache first (skip if forceRefresh)
     const t1 = Date.now();
-    const cached = await getCachedPhotos();
-    console.log(`[1] getCachedPhotos took ${Date.now() - t1}ms â€” ${cached?.length ?? 0} items`);
+    const cached = forceRefresh ? null : await getCachedPhotos();
+    console.log(`[1] getCachedPhotos took ${Date.now() - t1}ms – ${cached?.length ?? 0} items`);
 
     if (cached && cached.length > 0) {
       // show photos from cache immediately
@@ -25,12 +25,19 @@ export const useLibraryPhotoLoader = ({ permissionResponse, requestPermission, s
         .filter((photo) => photo?.id)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setPhotos(sortedCached);
-      console.log(`[2] setPhotos from cache took ${Date.now() - t2}ms â€” ${sortedCached.length} photos`);
+      console.log(`[2] setPhotos from cache took ${Date.now() - t2}ms – ${sortedCached.length} photos`);
 
       // verify if nasa db yung photos (photo_id)
       const t3 = Date.now();
-      const dbPhotos = await getAllPhotos();
-      console.log(`[3] getAllPhotos took ${Date.now() - t3}ms â€” ${dbPhotos?.length ?? 0} photos`);
+      let dbPhotos = [];
+      try {
+        dbPhotos = await getAllPhotos();
+      } catch (err) {
+        console.log('[3] getAllPhotos sync failed, keeping cache:', err.message);
+        console.log(`[TOTAL] handleGetPhotos (cache only) took ${Date.now() - t0}ms`);
+        return;
+      }
+      console.log(`[3] getAllPhotos took ${Date.now() - t3}ms – ${dbPhotos?.length ?? 0} photos`);
 
       const dbPhotoIds = new Set(dbPhotos.map((p) => p.id));
       const cachedIds = new Set(cached.map((p) => p.id));
@@ -59,11 +66,11 @@ export const useLibraryPhotoLoader = ({ permissionResponse, requestPermission, s
     try {
       const t5 = Date.now();
       const assets = await getAllPhotos();
-      console.log(`[6] getAllPhotos (no cache) took ${Date.now() - t5}ms â€” ${assets?.length ?? 0} photos`);
+      console.log(`[6] getAllPhotos (no cache) took ${Date.now() - t5}ms – ${assets?.length ?? 0} photos`);
 
       if (!Array.isArray(assets) || assets.length === 0) return;
 
-      // no resolvePhotoUri needed â€” expo-image renders device_asset_id directly
+      // no resolvePhotoUri needed – expo-image renders device_asset_id directly
       const sorted = assets
         .filter(Boolean)
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
