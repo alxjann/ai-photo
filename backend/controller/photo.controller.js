@@ -1,11 +1,11 @@
 import {
-    batchProcessImages,
+    batchProcessPhotos,
     deletePhoto,
     getAllPhotos,
     getPhoto,
-    processImage,
+    processPhoto,
     reprocessPhoto,
-    searchImage,
+    searchPhotos,
     updatePhotoDescriptions,
 } from '../services/photo.service.js';
 import { getClientAuthToken } from '../utils/getClientAuthToken.js';
@@ -83,7 +83,7 @@ export const deletePhotoController = async (req, res) => {
     }
 };
 
-export const processImageController = async (req, res) => {
+export const processPhotoController = async (req, res) => {
     try {
         const supabase = getClientAuthToken(req, res);
         if (!supabase) return;
@@ -97,7 +97,7 @@ export const processImageController = async (req, res) => {
         const manualDescription = req.body.manualDescription || null;
         const device_asset_id = req.body.device_asset_id || null;
 
-        const result = await processImage(user, supabase, req.file.buffer, device_asset_id, manualDescription);
+        const result = await processPhoto(user, supabase, req.file.buffer, device_asset_id, manualDescription);
 
         res.status(200).json({ message: 'Image processed successfully', photo: result });
     } catch (error) {
@@ -109,7 +109,7 @@ export const processImageController = async (req, res) => {
     }
 };
 
-export const batchProcessImagesController = async (req, res) => {
+export const batchProcessPhotosController = async (req, res) => {
     try {
         const supabase = getClientAuthToken(req, res);
         if (!supabase) return;
@@ -125,7 +125,7 @@ export const batchProcessImagesController = async (req, res) => {
             ? req.body.device_asset_id
             : [req.body.device_asset_id];
 
-        const { results, errors } = await batchProcessImages(user, supabase, req.files, deviceAssetIds);
+        const { results, errors } = await batchProcessPhotos(user, supabase, req.files, deviceAssetIds);
 
         res.status(200).json({
             message: 'Batch processing complete',
@@ -144,7 +144,7 @@ export const batchProcessImagesController = async (req, res) => {
     }
 };
 
-export const reprocessImageController = async (req, res) => {
+export const reprocessPhotoController = async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'Image file required for reprocessing' });
@@ -165,7 +165,7 @@ export const reprocessImageController = async (req, res) => {
     }
 };
 
-export const searchImagesController = async (req, res) => {
+export const searchPhotosController = async (req, res) => {
     try {
         const supabase = getClientAuthToken(req, res);
         if (!supabase) return;
@@ -178,7 +178,7 @@ export const searchImagesController = async (req, res) => {
             return res.status(400).json({ error: 'Search query is required' });
         }
 
-        const { results, count } = await searchImage(user, supabase, query);
+        const { results, count } = await searchPhotos(user, supabase, query);
 
         res.status(200).json({ results, count });
     } catch (error) {

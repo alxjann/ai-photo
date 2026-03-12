@@ -28,7 +28,7 @@ export const takePhoto = async () => {
     formData.append('device_asset_id', photo.id);
 
     try {
-      const response = await fetch(`${API_URL}/api/image`, {
+      const response = await fetch(`${API_URL}/api/photo`, {
         method: 'POST',
         body: formData,
         headers: { 
@@ -86,7 +86,7 @@ export const processPhotos = async (photos) => {
         });
     }
 
-    const api = assets.length === 1 ? `${API_URL}/api/image` : `${API_URL}/api/images/batch`;
+    const api = assets.length === 1 ? `${API_URL}/api/photo` : `${API_URL}/api/photos/batch`;
 
     const response = await fetch(api, {
         method: 'POST',
@@ -164,7 +164,7 @@ export const searchPhoto = async (query = '') => {
     try {
         const token = await getSession();
 
-        const response = await fetch(`${API_URL}/api/search`, {
+        const response = await fetch(`${API_URL}/api/photos/search`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -100,7 +100,7 @@ export const deletePhoto = async (user, supabase, id) => {
     return data;
 };
 
-export const processImage = async (user, supabase, image, device_asset_id) => {
+export const processPhoto = async (user, supabase, image, device_asset_id) => {
     const start = Date.now();
     if (!user || !user.id) throw new Error('Invalid user object or missing user.id');
 
@@ -165,11 +165,11 @@ export const processImage = async (user, supabase, image, device_asset_id) => {
 
     if (insertError) throw insertError;
 
-    console.log(`processImage: completed in ${Date.now() - start}ms`);
+    console.log(`processPhoto: completed in ${Date.now() - start}ms`);
     return insertData;
 };
 
-export const batchProcessImages = async (user, supabase, files, deviceAssetIds) => {
+export const batchProcessPhotos = async (user, supabase, files, deviceAssetIds) => {
     if (!files || files.length === 0)
         throw new Error('No image files provided');
 
@@ -180,7 +180,7 @@ export const batchProcessImages = async (user, supabase, files, deviceAssetIds) 
 
     for (let i = 0; i < files.length; i++) {
         try {
-            const result = await processImage(user, supabase, files[i].buffer, ids[i]);
+            const result = await processPhoto(user, supabase, files[i].buffer, ids[i]);
             results.push({ index: i, photo: result });
         } catch (error) {
             errors.push({ index: i, error: error.message });
@@ -239,7 +239,7 @@ export const reprocessPhoto = async ({ supabase, userId, photoId, fileBuffer }) 
     return updated;
 };
 
-export const searchImage = async (user, supabase, query) => {
+export const searchPhotos = async (user, supabase, query) => {
     const normalizedQuery = query.trim();
 
     const queryEmbedding = await generateEmbedding(normalizedQuery);
