@@ -8,7 +8,8 @@ import {
   Modal,
   TextInput,
   FlatList,
-  SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -117,12 +118,12 @@ export default function FaceRegistration() {
   return (
     <View className={`flex-1 ${colors.pageBg}`}>
       {/* Header */}
-      <View className={`flex-row items-center justify-between px-4 pt-16 border-b ${colors.headerBg} ${colors.border}`}>
-        <Pressable onPress={() => router.back()} className="p-1 -ml-1" hitSlop={8}>
-          <Ionicons name="chevron-back" size={26} color={colors.icon} />
+      <View className={`flex-row items-center px-4 pt-16 pb-4 border-b ${colors.headerBg} ${colors.border}`}>
+        <Pressable onPress={() => router.back()} className="mr-4" hitSlop={8}>
+          <Ionicons name="arrow-back" size={24} color={colors.icon} />
         </Pressable>
-        <Text className={`text-lg font-bold ${colors.textPrimary}`}>Face Recognition</Text>
-        <Pressable onPress={handleAdd} disabled={registering} hitSlop={8}>
+        <Text className={`text-2xl font-bold ${colors.headerText}`}>Face Recognition</Text>
+        <Pressable onPress={handleAdd} disabled={registering} hitSlop={8} className="ml-auto">
           {registering ? (
             <ActivityIndicator size="small" color={colors.icon} />
           ) : (
