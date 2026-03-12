@@ -31,6 +31,11 @@ export default function FloatingMenu({ menuAnim, isDarkMode, size = 0 }) {
     router.push('/upload');
   };
 
+  const handleRegisterFace = () => {
+    toggleMenu();
+    router.push('/face');
+  };
+
   const toggleMenu = () => {
     const toValue = menuVisible ? 0 : 1;
     if (!menuVisible) setMenuVisible(true);
@@ -86,10 +91,17 @@ export default function FloatingMenu({ menuAnim, isDarkMode, size = 0 }) {
           </Pressable>
           <Pressable
             onPress={handleUploadPhoto}
-            className={`flex-row items-center justify-between px-4 py-3 ${colors.rowActive}`}
+            className={`flex-row items-center justify-between px-4 py-3 border-b ${colors.rowBorder} ${colors.rowActive}`}
           >
             <Text className={`text-base ${colors.text}`}>Upload Photo</Text>
             <Ionicons name="image-outline" size={20} color={colors.icon} />
+          </Pressable>
+          <Pressable
+            onPress={handleRegisterFace}
+            className={`flex-row items-center justify-between px-4 py-3 ${colors.rowActive}`}
+          >
+            <Text className={`text-base ${colors.text}`}>Register Face</Text>
+            <Ionicons name="people-outline" size={20} color={colors.icon} />
           </Pressable>
         </Animated.View>
       )}
