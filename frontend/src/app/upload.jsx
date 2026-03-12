@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect, useRef } from 'react';
-import { processPhotos } from '../service/photoService';
+import { processSinglePhoto } from '../service/photoService';
 import { usePhotoContext } from '../context/PhotoContext';
 import { useThemeContext } from '../context/ThemeContext.jsx';
 import { getThemeColors } from '../theme/appColors.js';
@@ -59,76 +59,60 @@ export default function Upload() {
   const uploadSelected = async () => {
     if (!selectedAssets || selectedAssets.length === 0) return;
     const total = selectedAssets.length;
+    const CONCURRENCY = 3;
     setDuplicateWarning(null);
     setUploadProgress({ current: 0, total, done: false });
     progressAnim.setValue(0);
 
+    const duplicates = [];
+    let completed = 0;
+
     try {
-      if (total === 1) {
-        const asset = selectedAssets[0];
-        const res = await processPhotos([asset]);
+      for (let i = 0; i < selectedAssets.length; i += CONCURRENCY) {
+        const chunk = selectedAssets.slice(i, i + CONCURRENCY);
 
-        if (res?.duplicate) {
-          setDuplicateWarning({
-            count: 1,
-            items: [asset.uri],
-          });
-        }
-
-        if (res?.photo) {
-          const newPhoto = {
-            device_asset_id: res.photo.device_asset_id,
-            uri: asset.uri,
-            descriptive: res.photo.descriptive || null,
-            literal: res.photo.literal || null,
-            id: res.photo.id || null,
-            category: res.photo.category,
-            tags: res.photo.tags,
-            created_at: res.photo.created_at || null,
-          };
-          appendPhoto(newPhoto);
-          await addPhotoToCache([newPhoto]);
-        }
-      } else {
-        const res = await processPhotos(selectedAssets);
-        const successfulResults = Array.isArray(res?.results) ? res.results : [];
-        const newPhotos = successfulResults
-          .map((r) => {
-            const asset = selectedAssets[r.index];
-            if (!asset || !r.photo) return null;
-            return {
-              device_asset_id: r.photo.device_asset_id,
-              uri: asset.uri,
-              descriptive: r.photo.descriptive || null,
-              literal: r.photo.literal || null,
-              id: r.photo.id || null,
-              category: r.photo.category,
-              tags: r.photo.tags,
-              created_at: r.photo.created_at || null,
-            };
-          })
-          .filter(Boolean);
-
-        newPhotos.forEach(appendPhoto);
-        if (newPhotos.length > 0) {
-          await addPhotoToCache(newPhotos);
-        }
-
-        const duplicateErrors = (Array.isArray(res?.errors) ? res.errors : []).filter(
-          (e) => e?.error === 'DUPLICATE_IMAGE'
+        const results = await Promise.allSettled(
+          chunk.map((asset) => processSinglePhoto(asset))
         );
-        if (duplicateErrors.length > 0) {
-          setDuplicateWarning({
-            count: duplicateErrors.length,
-            items: duplicateErrors
-              .map((e) => selectedAssets[e.index]?.uri)
-              .filter(Boolean),
-          });
-        }
+
+        const newPhotos = [];
+        results.forEach((outcome, j) => {
+          const asset = chunk[j];
+          if (outcome.status === 'rejected') {
+            console.log(`Photo ${i + j + 1} failed:`, outcome.reason?.message);
+            return;
+          }
+          const res = outcome.value;
+          if (res?.duplicate) {
+            duplicates.push(asset.uri);
+          } else if (res?.photo) {
+            newPhotos.push({
+              device_asset_id: res.photo.device_asset_id,
+              uri: asset.uri,
+              descriptive: res.photo.descriptive || null,
+              literal: res.photo.literal || null,
+              id: res.photo.id || null,
+              category: res.photo.category,
+              tags: res.photo.tags,
+              created_at: res.photo.created_at || null,
+            });
+          }
+        });
+
+        // append + cache all successful photos from this chunk
+        newPhotos.forEach(appendPhoto);
+        if (newPhotos.length > 0) await addPhotoToCache(newPhotos);
+
+        // update progress after each chunk
+        completed += chunk.length;
+        setUploadProgress({ current: completed, total, done: false });
+      }
+
+      if (duplicates.length > 0) {
+        setDuplicateWarning({ count: duplicates.length, items: duplicates });
       }
 
       setUploadProgress({ current: total, total, done: true });
-
       setTimeout(() => {
         setUploadProgress(null);
         setSelectedAssets([]);
@@ -138,7 +122,6 @@ export default function Upload() {
       setUploadProgress(null);
     }
   };
-
   const isUploading = uploadProgress && !uploadProgress.done;
   const isDone = uploadProgress?.done;
   const pct = uploadProgress
@@ -315,6 +298,3 @@ export default function Upload() {
     </View>
   );
 }
-
-
-

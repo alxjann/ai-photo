@@ -52,7 +52,7 @@ export const registerFace = async (imageBuffer) => {
     const img = await bufferToCanvas(imageBuffer);
     console.log(`[registerFace] image size: ${img.width}x${img.height}`);
     const detection = await faceapi
-        .detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
+        .detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.7 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
     console.log(`[registerFace] detection: ${detection ? 'found' : 'NOT FOUND'}`);
@@ -69,7 +69,7 @@ export const detectFacesInImage = async (imageBuffer, knownFaces) => {
         console.log(`[detectFaces] image size: ${img.width}x${img.height}, known faces: ${knownFaces.map(f => f.name).join(', ')}`);
 
         const detections = await faceapi
-            .detectAllFaces(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.3 }))
+            .detectAllFaces(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.7 }))
             .withFaceLandmarks()
             .withFaceDescriptors();
 
@@ -79,7 +79,7 @@ export const detectFacesInImage = async (imageBuffer, knownFaces) => {
         const labeled = knownFaces.map(f =>
             new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor.map(Number))])
         );
-        const matcher = new faceapi.FaceMatcher(labeled, 0.6);
+        const matcher = new faceapi.FaceMatcher(labeled, 0.45);
 
         const names = new Set();
         for (const d of detections) {

@@ -26,8 +26,8 @@ Query: "${query}"
 Below are photo candidates. Return the numbers of photos that match the query.
 
 RULES:
-- Be LENIENT with vague or general queries (e.g. "dog", "my pet dog") - include any photo that could reasonably match
-- Be STRICT with specific queries (e.g. "dog behind gate", "valorant scoreboard") - only include exact matches
+- Be LENIENT with vague or general queries (e.g. "dog", "my pet dog") â€” include any photo that could reasonably match
+- Be STRICT with specific queries (e.g. "dog behind gate", "valorant scoreboard") â€” only include exact matches
 - If the query mentions a person ("me", "my", "I") but the photo has no person, still include it if the subject matches
 - Prefer returning too many results over too few
 
@@ -106,21 +106,21 @@ export const processPhoto = async (user, supabase, image, device_asset_id) => {
 
     const compressedImage = await getCompressedImageBuffer(image);
 
-    const { data: knownFaces } = await supabase
-        .from('known_face')
-        .select('name, descriptor')
-        .eq('user_id', user.id);
-
-    const { data: existing } = await supabase
-        .from('photo')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('device_asset_id', device_asset_id)
-        .maybeSingle();
+    // Run DB lookups in parallel
+    const [{ data: knownFaces }, { data: existing }] = await Promise.all([
+        supabase.from('known_face').select('name, descriptor').eq('user_id', user.id),
+        supabase.from('photo').select('id').eq('user_id', user.id).eq('device_asset_id', device_asset_id).maybeSingle(),
+    ]);
 
     if (existing) throw new Error('DUPLICATE_IMAGE');
 
-    const description = await describeImage(compressedImage);
+    // Run describeImage and detectFaces in parallel — they're fully independent
+    const [description, faces] = await Promise.all([
+        describeImage(compressedImage),
+        knownFaces?.length > 0
+            ? detectFacesInImage(image, knownFaces)
+            : Promise.resolve(null),
+    ]);
 
     const literalStart = description.indexOf('[LITERAL]');
     const descriptiveStart = description.indexOf('[DESCRIPTIVE]');
@@ -132,15 +132,12 @@ export const processPhoto = async (user, supabase, image, device_asset_id) => {
     const tags = description.substring(tagsStart + 6, categoryStart).trim().toLowerCase();
     const category = description.substring(categoryStart + 10).trim().toLowerCase();
 
-    const [descriptiveEmbedding, literalEmbedding, faces] = await Promise.all([
+    const [descriptiveEmbedding, literalEmbedding] = await Promise.all([
         generateEmbedding(descriptive),
         generateEmbedding(literal),
-        knownFaces?.length > 0
-            ? detectFacesInImage(image, knownFaces)
-            : Promise.resolve(null),
     ]);
 
-    if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) {
+        if (!descriptiveEmbedding || descriptiveEmbedding.length !== 1536) {
         throw new Error(`Invalid descriptive embedding dimension: ${descriptiveEmbedding?.length}`);
     }
     if (!literalEmbedding || literalEmbedding.length !== 1536) {
@@ -169,7 +166,7 @@ export const processPhoto = async (user, supabase, image, device_asset_id) => {
     return insertData;
 };
 
-export const batchProcessPhotos = async (user, supabase, files, deviceAssetIds) => {
+export const batchProcessPhotos = async (user, supabase, files, deviceAssetIds, concurrency = 3) => {
     if (!files || files.length === 0)
         throw new Error('No image files provided');
 
@@ -178,13 +175,20 @@ export const batchProcessPhotos = async (user, supabase, files, deviceAssetIds) 
     const results = [];
     const errors = [];
 
-    for (let i = 0; i < files.length; i++) {
-        try {
-            const result = await processPhoto(user, supabase, files[i].buffer, ids[i]);
-            results.push({ index: i, photo: result });
-        } catch (error) {
-            errors.push({ index: i, error: error.message });
-        }
+    // Process in chunks of `concurrency` at a time
+    for (let i = 0; i < files.length; i += concurrency) {
+        const chunk = files.slice(i, i + concurrency);
+        const chunkResults = await Promise.allSettled(
+            chunk.map((file, j) => processPhoto(user, supabase, file.buffer, ids[i + j]))
+        );
+
+        chunkResults.forEach((outcome, j) => {
+            if (outcome.status === 'fulfilled') {
+                results.push({ index: i + j, photo: outcome.value });
+            } else {
+                errors.push({ index: i + j, error: outcome.reason?.message });
+            }
+        });
     }
 
     return { results, errors };

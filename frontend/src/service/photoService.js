@@ -43,6 +43,7 @@ export const takePhoto = async () => {
         uri: result.assets[0].uri,
         descriptive: data.photo?.descriptive || null,
         literal: data.photo?.literal || null,
+        manual_description: data.photo?.manual_description || null,
         id: data.photo?.id || null,
         category: data.photo?.category,
         tags: data.photo?.tags,
@@ -52,6 +53,31 @@ export const takePhoto = async () => {
         console.log("Upload failed", error);
         throw error;
     }
+};
+
+export const processSinglePhoto = async (photo) => {
+    const token = await getSession();
+    const assetId = Platform.OS === 'ios' ? photo.assetId : (photo.fileName ? photo.fileName.replace(/\.[^/.]+$/, '') : null);
+
+    const formData = new FormData();
+    formData.append('image', { uri: photo.uri, name: 'photo.jpg', type: 'image/jpeg' });
+    formData.append('device_asset_id', assetId);
+
+    const response = await fetch(`${API_URL}/api/photo`, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Content-Type': 'multipart/form-data', 'Authorization': `Bearer ${token}` },
+    });
+
+    const data = await response.json();
+
+    if (response.status === 409 || data?.error === 'Duplicate image') {
+        return { duplicate: true };
+    }
+    if (!response.ok) {
+        throw new Error(data.error || 'Failed to process photo');
+    }
+    return data;
 };
 
 export const processPhotos = async (photos) => {
@@ -107,6 +133,32 @@ export const processPhotos = async (photos) => {
     }
 
     return data;
+
+/* wait
+    if (response.status === 409 || data.error === 'Duplicate image') {
+        return { added: [], duplicates: assets.length };
+    }
+
+    if (!response.ok) {
+        console.error('processPhotos error:', data);
+        return { added: [], duplicates: 0 };
+    }
+
+    if (assets.length === 1) {
+        return {
+            added: [{ id: data.photo?.id, uri: assets[0].uri }],
+            duplicates: 0
+        };
+    }
+    const successfulResults = data.results || [];
+    const added = successfulResults.map(r => ({
+        id: r.photo?.id,
+        device_asset_id: assets[r.index].resolvedAssetId,
+        uri: assets[r.index].resolvedUri,
+        uri: assets[r.index].uri,
+    }));
+    return { added, duplicates: assets.length - added.length };
+*/
 };
 
 export const getAllPhotos = async () => {
