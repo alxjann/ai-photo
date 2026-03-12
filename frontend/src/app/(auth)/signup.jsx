@@ -107,10 +107,10 @@ export default function Signup() {
         <Pressable
           onPress={handleSignup}
           disabled={loading}
-          className={`h-14 rounded-full items-center justify-center mb-8 ${colors.button}`}
+          className={`h-14 rounded-full items-center justify-center mb-8 ${dark ? 'bg-zinc-100' : 'bg-black'}`}
         >
           {({ pressed }) => (
-            <Text className={`text-lg font-semibold ${colors.buttonText}`} style={{ opacity: pressed ? 0.7 : 1 }}>
+            <Text className={`text-lg font-semibold ${dark ? 'text-zinc-900' : 'text-white'}`} style={{ opacity: pressed ? 0.7 : 1 }}>
               {loading ? 'Signing in...' : 'Sign Up'}
             </Text>
           )}
