@@ -125,14 +125,11 @@ export default function Profile() {
         {/* Account Card */}
         <View className={`mt-6 mx-3 rounded-2xl p-6 mb-6 ${colors.cardBg}`}>
           <View className="items-center">
-            <View className={`w-20 h-20 bg-gradient-to-br ${colors.avatarGradient} rounded-full items-center justify-center mb-4`}>
-              <Text className="text-white text-3xl font-bold">
-                {user?.email?.[0]?.toUpperCase() || 'U'}
+            <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${colors.pickerCircle}`}>
+              <Text className="text-3xl font-bold" style={{ color: colors.pickerCircleIcon }}>
+                {user?.email?.[0]?.toUpperCase() || 'A'}
               </Text>
             </View>
-            <Text className={`text-xl font-bold mb-1 ${colors.textPrimary}`}>
-              {user?.user_metadata?.full_name || 'User'}
-            </Text>
             <Text className={`text-sm ${colors.textSecondary}`}>{user?.email || 'user@example.com'}</Text>
           </View>
         </View>
@@ -151,20 +148,8 @@ export default function Profile() {
           />
         </SettingsSection>
 
-        {/* Storage & Backup */}
-        <SettingsSection title="Storage & Backup">
-          <SettingsRow
-            icon="cloud-upload-outline"
-            label="Storage Used"
-            value="2.3 GB"
-            onPress={() => {}}
-          />
-          <ToggleRow
-            icon="sync"
-            label="Auto Backup"
-            value={autoBackup}
-            onValueChange={setAutoBackup}
-          />
+        {/* Storage */}
+        <SettingsSection title="Storage">
           <SettingsRow
             icon="trash-outline"
             label="Clear Cache"
@@ -172,61 +157,8 @@ export default function Profile() {
             isLast
           />
         </SettingsSection>
-
-        {/* Preferences */}
-        <SettingsSection title="Preferences">
-          <ToggleRow
-            icon="notifications-outline"
-            label="Notifications"
-            value={notifications}
-            onValueChange={setNotifications}
-          />
-          <SettingsRow
-            icon="language-outline"
-            label="Language"
-            value="English"
-            onPress={() => {}}
-            isLast
-          />
-        </SettingsSection>
-
-        {/* Account */}
-        <SettingsSection title="Account">
-          <SettingsRow
-            icon="person-outline"
-            label="Edit Profile"
-            onPress={() => {}}
-          />
-          <SettingsRow
-            icon="shield-checkmark-outline"
-            label="Privacy & Security"
-            onPress={() => {}}
-          />
-          <SettingsRow
-            icon="key-outline"
-            label="Change Password"
-            onPress={() => {}}
-            isLast
-          />
-        </SettingsSection>
-
         {/* About */}
         <SettingsSection title="About">
-          <SettingsRow
-            icon="help-circle-outline"
-            label="Help & Support"
-            onPress={() => {}}
-          />
-          <SettingsRow
-            icon="document-text-outline"
-            label="Terms of Service"
-            onPress={() => {}}
-          />
-          <SettingsRow
-            icon="shield-outline"
-            label="Privacy Policy"
-            onPress={() => {}}
-          />
           <SettingsRow
             icon="information-circle-outline"
             label="About"
