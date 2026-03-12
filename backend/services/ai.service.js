@@ -9,23 +9,23 @@ const embeddingModel = "text-embedding-3-small";
 
 const IMAGE_PROMPT = `
 You are an expert image analysis assistant with deep knowledge of Filipino cuisine, games, anime, films, landmarks, nature, and pop culture.
-Analyze the image and produce THREE separate sections. If the image is low resolution or unclear, do your best to describe what you can see â€” never respond with "I don't know" or refuse to analyze:
+Analyze the image and produce THREE separate sections. If the image is low resolution or unclear, do your best to describe what you can see - never respond with "I don't know" or refuse to analyze:
 
 RULES:
 - Do NOT repeat information across sections
-- Be specific and accurate â€” name things explicitly when you recognize them
+- Be specific and accurate - name things explicitly when you recognize them
 - For food: ALWAYS name the specific dish if identifiable. Describe unique visual characteristics that distinguish it (color of sauce, texture, specific ingredients visible)
 - Use complete sentences for descriptions
 - Use comma-separated keywords for tags
 - Identify specific characters, franchises, landmarks, species, or locations by name when recognizable
-- For [CATEGORY]: only assign a category if the main subject of the image clearly and directly belongs to it. If the image shows an object, device, text, screenshot, or anything that does not fit Food, Nature, Animals, People, or Travel â€” leave [CATEGORY] completely empty.
+- For [CATEGORY]: only assign a category if the main subject of the image clearly and directly belongs to it. If the image shows an object, device, text, screenshot, or anything that does not fit Food, Nature, Animals, People, or Travel - leave [CATEGORY] completely empty.
 
 FORMAT:
 [LITERAL]
-<2-3 sentences describing exactly what you see â€” be highly specific about colors, textures, ingredients, animal breed>
+<2-3 sentences describing exactly what you see - be highly specific about colors, textures, ingredients, animal breed>
 
 [DESCRIPTIVE]
-<2-3 sentences describing context, setting, mood, or significance â€” mention the dish name explicitly>
+<2-3 sentences describing context, setting, mood, or significance - mention the dish name explicitly>
 
 [TAGS]
 <comma-separated keywords>
@@ -36,7 +36,7 @@ TAG CATEGORIES (include all relevant ones):
 - Characters: name specific game/anime/film characters (e.g., kimmy, luffy, naruto, goku)
 - Franchise/IP: mobile-legends, genshin-impact, valorant, one-piece, naruto, pokemon
 - Animals: ALWAYS include "animal" tag for ANY creature, PLUS the specific species (e.g. animal, clownfish; animal, eagle; animal, dog, labrador)
-- Food: Tag ONLY the dish actually shown â€” never add other dish names as tags just because they share ingredients.
+- Food: Tag ONLY the dish actually shown - never add other dish names as tags just because they share ingredients.
   Name the specific dish: pork-adobo, beef-sinigang, bicol-express, chicken-curry, lechon, kare-kare, pinakbet, etc.
 - Nature: mountain, beach, forest, waterfall, sunset, ocean
 - Landmarks: name if recognizable (e.g., eiffel-tower, rizal-park, tokyo-tower)
@@ -127,7 +127,7 @@ export const describeImage = async (imageBuffer) => {
         const { prompt_tokens, completion_tokens, total_tokens } = response.usage;
         console.log(response.usage)
         const cached = response.usage.prompt_tokens_details?.cached_tokens ?? 0;  // â† check cache hits
-        console.log(`describeImage: Success in ${Date.now() - start}ms | tokens â€” prompt: ${prompt_tokens} (cached: ${cached}), completion: ${completion_tokens}, total: ${total_tokens}`);
+        console.log(`describeImage: Success in ${Date.now() - start}ms | tokens - prompt: ${prompt_tokens} (cached: ${cached}), completion: ${completion_tokens}, total: ${total_tokens}`);
 
         const content = response.choices[0].message.content;
         if (!content) throw new Error('Empty response from AI');
@@ -137,7 +137,7 @@ export const describeImage = async (imageBuffer) => {
     } catch (error) {
         if (error.status === 429) {
             console.error('Rate limit hit for GPT-4o-mini');
-            throw new Error('Image analysis rate limit hit â€” try again shortly');
+            throw new Error('Image analysis rate limit hit - try again shortly');
         }
 
         console.error('OpenAI Error:', error.message);

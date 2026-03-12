@@ -26,8 +26,8 @@ Query: "${query}"
 Below are photo candidates. Return the numbers of photos that match the query.
 
 RULES:
-- Be LENIENT with vague or general queries (e.g. "dog", "my pet dog") â€” include any photo that could reasonably match
-- Be STRICT with specific queries (e.g. "dog behind gate", "valorant scoreboard") â€” only include exact matches
+- Be LENIENT with vague or general queries (e.g. "dog", "my pet dog") - include any photo that could reasonably match
+- Be STRICT with specific queries (e.g. "dog behind gate", "valorant scoreboard") - only include exact matches
 - If the query mentions a person ("me", "my", "I") but the photo has no person, still include it if the subject matches
 - Prefer returning too many results over too few
 
