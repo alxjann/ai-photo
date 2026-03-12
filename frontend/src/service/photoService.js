@@ -21,7 +21,26 @@ async function rerankWithGPT(query, candidates) {
                 role: 'user',
                 content: `You are a photo search relevance judge.
 
+<<<<<<< HEAD
 Query: "${query}"
+=======
+      const data = await response.json();
+      return {
+        device_asset_id: photo.id || photo.assetId || photo.device_asset_id || null,
+        uri: result.assets[0].uri,
+        descriptive: data.photo?.descriptive || null,
+        literal: data.photo?.literal || null,
+        id: data.photo?.id || null,
+        category: data.photo?.category,
+        tags: data.photo?.tags,
+        created_at: data.photo?.created_at || null,
+      };
+    } catch (error) {
+        console.log("Upload failed", error);
+        throw error;
+    }
+};
+>>>>>>> fbb9ee40c1dc818aa335980e68dcaaef1109dcfd
 
 Below are photo candidates. Return the numbers of photos that match the query.
 

@@ -46,7 +46,7 @@ export default function Signup() {
     setLoading(true);
     try {
       await signup(email, password);
-      router.replace('(tabs)/library');
+      router.replace({ pathname: '(auth)/otp', params: { email } });
     } catch (err) {
       Alert.alert('Signup failed', err.message);
     } finally {
