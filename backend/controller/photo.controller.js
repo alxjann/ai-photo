@@ -94,10 +94,9 @@ export const processPhotoController = async (req, res) => {
 
         console.log('device_asset_id received:', req.body.device_asset_id);
 
-        const manualDescription = req.body.manualDescription || null;
         const device_asset_id = req.body.device_asset_id || null;
 
-        const result = await processPhoto(user, supabase, req.file.buffer, device_asset_id, manualDescription);
+        const result = await processPhoto(user, supabase, req.file.buffer, device_asset_id);
 
         res.status(200).json({ message: 'Image processed successfully', photo: result });
     } catch (error) {

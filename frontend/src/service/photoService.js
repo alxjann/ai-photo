@@ -43,7 +43,6 @@ export const takePhoto = async () => {
         uri: result.assets[0].uri,
         descriptive: data.photo?.descriptive || null,
         literal: data.photo?.literal || null,
-        manual_description: data.photo?.manual_description || null,
         id: data.photo?.id || null,
         category: data.photo?.category,
         tags: data.photo?.tags,

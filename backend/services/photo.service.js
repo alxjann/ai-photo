@@ -60,7 +60,7 @@ Numbers only, no explanation.`
 export const getAllPhotos = async (user, supabase) => {
     const { data, error } = await supabase
         .from('photo')
-        .select('id, device_asset_id, descriptive, literal, tags, category, manual_description, created_at')
+        .select('id, device_asset_id, descriptive, literal, tags, category, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -71,7 +71,7 @@ export const getAllPhotos = async (user, supabase) => {
 export const getPhoto = async (user, supabase, id) => {
     const { data, error } = await supabase
         .from('photo')
-        .select('id, device_asset_id, descriptive, literal, tags, manual_description, created_at')
+        .select('id, device_asset_id, descriptive, literal, tags, created_at')
         .eq('id', id)
         .eq('user_id', user.id)
         .single();
@@ -318,7 +318,7 @@ export const updatePhotoDescriptions = async ({
         })
         .eq('id', photoId)
         .eq('user_id', userId)
-        .select('id, device_asset_id, descriptive, literal, tags, category, manual_description, created_at, updated_at')
+        .select('id, device_asset_id, descriptive, literal, tags, category, created_at, updated_at')
         .single();
 
     if (updateError) throw updateError;
