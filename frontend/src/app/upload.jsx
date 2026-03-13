@@ -34,6 +34,7 @@ export default function Upload() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
+      selectionLimit: 50, 
       quality: 1,
     });
 
