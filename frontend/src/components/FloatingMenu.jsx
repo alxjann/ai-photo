@@ -10,7 +10,7 @@ import { getThemeColors } from '../theme/appColors.js';
 export default function FloatingMenu({ menuAnim, isDarkMode, size = 0 }) {
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
-  const { appendPhoto } = usePhotoContext();
+  const { appendPhoto, setUploadProgress } = usePhotoContext();
   const colors = getThemeColors(isDarkMode);
 
   const circleBg      = isDarkMode ? '#1C1C1E' : '#FFFFFF';
@@ -18,11 +18,46 @@ export default function FloatingMenu({ menuAnim, isDarkMode, size = 0 }) {
   const iconColor     = isDarkMode ? '#FFFFFF'  : '#000000';
   const shadowOpacity = isDarkMode ? 0.6 : 0.15;
 
+  const startUploadBanner = () => {
+    setUploadProgress((prev) => {
+      if (prev && !prev.done && prev.source !== 'camera') return prev;
+      return { current: 0, total: 1, done: false, source: 'camera' };
+    });
+  };
+
+  const finishUploadBanner = () => {
+    setUploadProgress((prev) => {
+      if (prev && prev.source && prev.source !== 'camera') return prev;
+      return { current: 1, total: 1, done: true, source: 'camera' };
+    });
+    setTimeout(() => {
+      setUploadProgress((prev) => {
+        if (prev && prev.source && prev.source !== 'camera') return prev;
+        return null;
+      });
+    }, 1500);
+  };
+
+  const clearUploadBanner = () => {
+    setUploadProgress((prev) => {
+      if (prev && prev.source && prev.source !== 'camera') return prev;
+      return null;
+    });
+  };
+
   const handleTakePhoto = async () => {
-    const newPhoto = await takePhoto();
-    if (newPhoto) {
+    try {
+      startUploadBanner();
+      const newPhoto = await takePhoto();
+      if (!newPhoto) {
+        clearUploadBanner();
+        return;
+      }
+      finishUploadBanner();
       toggleMenu();
       appendPhoto(newPhoto);
+    } catch (e) {
+      clearUploadBanner();
     }
   };
 
